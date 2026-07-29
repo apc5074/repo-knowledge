@@ -1,0 +1,75 @@
+version: 1
+repository:
+  name: inventory-api
+  purpose: Tracks inventory state and reservation availability.
+  type: service
+  primary_language: python
+  languages:
+    - python
+applications:
+  api:
+    id: api
+    type: api
+    working_directory: services/inventory
+    dev:
+      command: uv
+      args:
+        - run
+        - fastapi
+        - dev
+        - inventory_api/main.py
+    health_check:
+      url: http://localhost:8000/health
+    ports:
+      - 8000
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL
+services:
+  postgres:
+    id: postgres
+    type: postgresql
+    compose_service: postgres
+    image: postgres:16
+    ports:
+      - 5432
+    environment:
+      - DATABASE_URL
+environment:
+  DATABASE_URL:
+    name: DATABASE_URL
+    required: true
+    default_for_local: postgres://postgres:postgres@localhost:5432/inventory
+setup:
+  install:
+    command: uv
+    args:
+      - sync
+  migrate:
+    command: uv
+    args:
+      - run
+      - alembic
+      - upgrade
+      - head
+verification:
+  default:
+    - id: typecheck
+      kind: typecheck
+      command:
+        command: uv
+        args:
+          - run
+          - mypy
+          - inventory_api
+    - id: tests
+      kind: test
+      command:
+        command: uv
+        args:
+          - run
+          - pytest
+sensitive_paths:
+  - pattern: .env*
+    risk: May contain local database credentials.

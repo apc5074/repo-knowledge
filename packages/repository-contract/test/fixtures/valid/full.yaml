@@ -1,0 +1,76 @@
+version: 1
+repository:
+  name: fixture-full
+  purpose:
+    value: Full fixture contract for parser, serializer, validation, and migration tests.
+    metadata:
+      source: agent
+      review_status: approval_required
+      review_required: true
+      proposal_id: proposal_fixture
+  type: service
+  primary_language: typescript
+metadata:
+  source: agent
+  review_status: approval_required
+  review_required: true
+maintenance:
+  maintained_by:
+    - contract-agent
+  review_required: true
+applications:
+  api:
+    id: api
+    type: api
+    working_directory: apps/api
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL
+services:
+  postgres:
+    id: postgres
+    type: postgresql
+    compose_service: postgres
+    environment:
+      - DATABASE_URL
+environment:
+  DATABASE_URL:
+    name: DATABASE_URL
+    required: true
+    default_for_local: postgres://postgres:postgres@localhost:5432/fixture
+setup:
+  install:
+    command: pnpm
+    args:
+      - install
+verification:
+  default:
+    - id: typecheck
+      kind: typecheck
+      command:
+        command: pnpm
+        args:
+          - typecheck
+generated_files:
+  - pattern: apps/api/src/generated/**
+    generated_by:
+      command: pnpm
+      args:
+        - generate
+    source_paths:
+      - openapi.yaml
+sensitive_paths:
+  - pattern: .env*
+    risk: May contain local credentials.
+related_repositories:
+  - name: fixture-web
+    provider: github
+    repository_slug: acme/fixture-web
+    relationship: consumes_api
+    direction: inbound
+known_limitations:
+  - id: fixture-local-only
+    summary: External API calls are mocked locally.
+    impact: Integration behavior must be checked outside local development.
+    status: accepted

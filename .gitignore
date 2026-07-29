@@ -1,0 +1,78 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output and generated assets
+dist/
+build/
+out/
+coverage/
+.turbo/
+.next/
+.vite/
+*.tsbuildinfo
+
+# Python environments, caches, and package metadata
+.venv/
+.uv-cache/
+.uv-python/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.tox/
+.nox/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+secrets/
+
+# Local databases, queues, and uploaded/runtime data
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.rdb
+data/
+storage/
+uploads/
+
+# Logs and diagnostics
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS and editor state
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local AI agent/client state
+.agents/
+.codex/
+.claude/
+
+# Private planning notes that should not be shown in the public portfolio repo
+plans/
+
+# temp
+docs/

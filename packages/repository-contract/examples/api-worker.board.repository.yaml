@@ -1,0 +1,84 @@
+version: 1
+repository:
+  name: notifications-service
+  purpose: Sends transactional notifications from domain events.
+  type: service
+  primary_language: typescript
+applications:
+  api:
+    id: api
+    type: api
+    working_directory: apps/api
+    dev:
+      command: pnpm
+      args:
+        - --filter
+        - api
+        - dev
+    ports:
+      - 4100
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL
+  worker:
+    id: worker
+    type: worker
+    working_directory: apps/worker
+    dev:
+      command: pnpm
+      args:
+        - --filter
+        - worker
+        - dev
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL
+      - SENDGRID_API_KEY
+services:
+  redis:
+    id: redis
+    type: redis
+    compose_service: redis
+    ports:
+      - 6379
+    environment:
+      - REDIS_URL
+environment:
+  REDIS_URL:
+    name: REDIS_URL
+    required: true
+    default_for_local: redis://localhost:6379
+  SENDGRID_API_KEY:
+    name: SENDGRID_API_KEY
+    required: false
+    secret: true
+    example_value: <redacted>
+setup:
+  install:
+    command: pnpm
+    args:
+      - install
+verification:
+  default:
+    - id: worker_tests
+      kind: test
+      command:
+        command: pnpm
+        args:
+          - --filter
+          - worker
+          - test
+external_systems:
+  - id: sendgrid
+    name: SendGrid
+    type: http_api
+    relationship: consumes_api
+    direction: outbound
+known_limitations:
+  - id: emails-not-sent-local
+    summary: Local worker logs email payloads instead of sending messages.
+    impact: Delivery behavior must be checked in staging.
+    workaround: Inspect worker logs for payload shape.
+    status: accepted

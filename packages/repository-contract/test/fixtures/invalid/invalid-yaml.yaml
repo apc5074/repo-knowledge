@@ -1,0 +1,4 @@
+version: 1
+repository:
+  name: invalid-yaml
+    type: service

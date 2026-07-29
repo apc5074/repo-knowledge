@@ -1,0 +1,7 @@
+version: 1
+repository:
+  name: invalid-path-pattern
+  type: service
+  primary_language: typescript
+generated_files:
+  - pattern: /tmp/generated/**

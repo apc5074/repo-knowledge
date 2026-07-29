@@ -1,0 +1,5 @@
+version: 1
+repository:
+  name: invalid-enum
+  type: daemon
+  primary_language: ruby

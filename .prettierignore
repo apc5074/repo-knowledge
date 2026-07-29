@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.turbo/
+.uv-cache/
+.venv/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.uv-python/
+packages/repository-contract/test/fixtures/invalid/invalid-yaml.yaml
+pnpm-lock.yaml

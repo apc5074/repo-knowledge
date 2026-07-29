@@ -1,0 +1,80 @@
+version: 1
+repository:
+  name: customer-portal
+  purpose: Hosts the customer portal frontend and its companion API.
+  type: application
+  primary_language: typescript
+applications:
+  frontend:
+    id: frontend
+    type: frontend
+    working_directory: apps/frontend
+    dev:
+      command: pnpm
+      args:
+        - --filter
+        - frontend
+        - dev
+    ports:
+      - 3000
+    depends_on:
+      - api
+    environment:
+      - NEXT_PUBLIC_API_URL
+  api:
+    id: api
+    type: api
+    working_directory: apps/api
+    dev:
+      command: pnpm
+      args:
+        - --filter
+        - api
+        - dev
+    ports:
+      - 5000
+    environment:
+      - DATABASE_URL
+services:
+  postgres:
+    id: postgres
+    type: postgresql
+    compose_service: postgres
+    ports:
+      - 5432
+    environment:
+      - DATABASE_URL
+environment:
+  NEXT_PUBLIC_API_URL:
+    name: NEXT_PUBLIC_API_URL
+    required: true
+    default_for_local: http://localhost:5000
+  DATABASE_URL:
+    name: DATABASE_URL
+    required: true
+    default_for_local: postgres://postgres:postgres@localhost:5432/portal
+setup:
+  install:
+    command: pnpm
+    args:
+      - install
+verification:
+  default:
+    - id: lint
+      kind: lint
+      command:
+        command: pnpm
+        args:
+          - lint
+    - id: smoke
+      kind: smoke
+      command:
+        command: pnpm
+        args:
+          - test:smoke
+      components:
+        - frontend
+        - api
+sensitive_paths:
+  - pattern: apps/api/.env*
+    risk: May contain local credentials.

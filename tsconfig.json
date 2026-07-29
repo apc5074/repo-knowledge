@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.base.json",
+  "files": [],
+  "references": [
+    { "path": "./apps/api" },
+    { "path": "./apps/web" },
+    { "path": "./apps/worker" },
+    { "path": "./packages/agent-memory" },
+    { "path": "./packages/agent-orchestrator" },
+    { "path": "./packages/agent-tools" },
+    { "path": "./packages/approvals" },
+    { "path": "./packages/cli" },
+    { "path": "./packages/mcp-server" },
+    { "path": "./packages/policy" },
+    { "path": "./packages/repository-contract" },
+    { "path": "./packages/scanner" },
+    { "path": "./packages/types" }
+  ]
+}

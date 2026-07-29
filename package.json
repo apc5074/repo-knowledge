@@ -1,0 +1,39 @@
+{
+  "name": "repo-knowledge",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "clean": "turbo run clean",
+    "dev": "turbo run dev --parallel",
+    "format": "prettier . --write && pnpm py:format",
+    "format:check": "prettier . --check && pnpm py:format:check",
+    "lint": "eslint . && pnpm py:lint",
+    "py:format": "UV_CACHE_DIR=.uv-cache UV_PROJECT_ENVIRONMENT=.venv uv run --group dev ruff format python",
+    "py:format:check": "UV_CACHE_DIR=.uv-cache UV_PROJECT_ENVIRONMENT=.venv uv run --group dev ruff format --check python",
+    "py:lint": "UV_CACHE_DIR=.uv-cache UV_PROJECT_ENVIRONMENT=.venv uv run --group dev ruff check python",
+    "py:sync": "UV_CACHE_DIR=.uv-cache UV_PROJECT_ENVIRONMENT=.venv uv sync --all-packages --group dev",
+    "py:test": "UV_CACHE_DIR=.uv-cache UV_PROJECT_ENVIRONMENT=.venv uv run --group dev pytest",
+    "py:typecheck": "UV_CACHE_DIR=.uv-cache UV_PROJECT_ENVIRONMENT=.venv uv run --group dev mypy python/agent-worker/src python/agent-worker/tests",
+    "test": "turbo run test && pnpm py:test",
+    "test:watch": "pnpm -r --if-present test:watch",
+    "typecheck": "turbo run typecheck && pnpm py:typecheck",
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.1.2",
+    "eslint": "^10.8.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.1",
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.1.10"
+  }
+}

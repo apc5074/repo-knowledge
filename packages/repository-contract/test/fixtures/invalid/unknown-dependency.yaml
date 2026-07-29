@@ -1,0 +1,11 @@
+version: 1
+repository:
+  name: unknown-dependency
+  type: service
+  primary_language: typescript
+applications:
+  worker:
+    id: worker
+    type: worker
+    depends_on:
+      - postgres

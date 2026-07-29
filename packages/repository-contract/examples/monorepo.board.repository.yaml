@@ -1,0 +1,96 @@
+version: 1
+repository:
+  name: commerce-monorepo
+  purpose: Contains customer-facing commerce apps and shared packages.
+  type: monorepo
+  primary_language: typescript
+  languages:
+    - typescript
+applications:
+  web:
+    id: web
+    type: frontend
+    working_directory: apps/web
+    dev:
+      command: pnpm
+      args:
+        - --filter
+        - web
+        - dev
+    ports:
+      - 3000
+    depends_on:
+      - api
+    environment:
+      - NEXT_PUBLIC_API_URL
+  api:
+    id: api
+    type: api
+    working_directory: apps/api
+    dev:
+      command: pnpm
+      args:
+        - --filter
+        - api
+        - dev
+    ports:
+      - 4000
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL
+services:
+  postgres:
+    id: postgres
+    type: postgresql
+    compose_service: postgres
+    ports:
+      - 5432
+    environment:
+      - DATABASE_URL
+environment:
+  DATABASE_URL:
+    name: DATABASE_URL
+    required: true
+    default_for_local: postgres://postgres:postgres@localhost:5432/commerce
+  NEXT_PUBLIC_API_URL:
+    name: NEXT_PUBLIC_API_URL
+    required: true
+    default_for_local: http://localhost:4000
+setup:
+  install:
+    command: pnpm
+    args:
+      - install
+verification:
+  default:
+    - id: build
+      kind: build
+      command:
+        command: pnpm
+        args:
+          - build
+  rules:
+    - id: api_changes
+      paths:
+        - apps/api/**
+      components:
+        - api
+      commands:
+        - command: pnpm
+          args:
+            - --filter
+            - api
+            - test
+generated_files:
+  - pattern: packages/api-client/src/**
+    generated_by:
+      command: pnpm
+      args:
+        - generate:client
+    source_paths:
+      - apps/api/openapi.yaml
+unsafe_paths:
+  - pattern: packages/api-client/src/**
+    reason: Generated API client.
+    edit_instead: apps/api/openapi.yaml

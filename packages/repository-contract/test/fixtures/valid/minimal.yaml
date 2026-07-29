@@ -1,0 +1,5 @@
+version: 1
+repository:
+  name: fixture-minimal
+  type: service
+  primary_language: typescript

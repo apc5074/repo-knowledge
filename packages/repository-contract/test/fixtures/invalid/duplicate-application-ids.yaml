@@ -1,0 +1,12 @@
+version: 1
+repository:
+  name: duplicate-application-ids
+  type: service
+  primary_language: typescript
+applications:
+  api:
+    id: api
+    type: api
+  api:
+    id: api
+    type: worker

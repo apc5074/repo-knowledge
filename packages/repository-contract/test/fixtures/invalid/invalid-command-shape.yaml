@@ -1,0 +1,9 @@
+version: 1
+repository:
+  name: invalid-command-shape
+  type: service
+  primary_language: typescript
+setup:
+  install:
+    args:
+      - install

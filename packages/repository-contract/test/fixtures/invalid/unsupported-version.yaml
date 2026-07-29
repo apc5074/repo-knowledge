@@ -1,0 +1,5 @@
+version: 999
+repository:
+  name: unsupported-version
+  type: service
+  primary_language: typescript

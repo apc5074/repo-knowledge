@@ -1,0 +1,122 @@
+version: 1
+repository:
+  name: orders-api
+  purpose: Owns order creation and lifecycle management.
+  type: service
+  primary_language: typescript
+  languages:
+    - typescript
+  owners:
+    - platform
+applications:
+  api:
+    id: api
+    name: Orders API
+    type: api
+    working_directory: apps/api
+    dev:
+      command: pnpm
+      args:
+        - --filter
+        - orders-api
+        - dev
+    build:
+      command: pnpm
+      args:
+        - --filter
+        - orders-api
+        - build
+    health_check:
+      url: http://localhost:3000/health
+    ports:
+      - 3000
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - DATABASE_URL
+      - REDIS_URL
+services:
+  postgres:
+    id: postgres
+    type: postgresql
+    compose_service: postgres
+    image: postgres:16
+    ports:
+      - 5432
+    environment:
+      - DATABASE_URL
+    evidence:
+      - kind: config
+        source_path: docker-compose.yml
+        verification_status: detected
+  redis:
+    id: redis
+    type: redis
+    compose_service: redis
+    image: redis:7
+    ports:
+      - 6379
+    environment:
+      - REDIS_URL
+environment:
+  DATABASE_URL:
+    name: DATABASE_URL
+    required: true
+    description: Local PostgreSQL connection string.
+    default_for_local: postgres://postgres:postgres@localhost:5432/orders
+  REDIS_URL:
+    name: REDIS_URL
+    required: true
+    description: Local Redis connection string.
+    default_for_local: redis://localhost:6379
+setup:
+  install:
+    command: pnpm
+    args:
+      - install
+  migrate:
+    command: pnpm
+    args:
+      - db:migrate
+verification:
+  default:
+    - id: typecheck
+      kind: typecheck
+      command:
+        command: pnpm
+        args:
+          - typecheck
+    - id: unit_tests
+      kind: test
+      command:
+        command: pnpm
+        args:
+          - test
+generated_files:
+  - pattern: apps/api/src/generated/**
+    generated_by:
+      command: pnpm
+      args:
+        - generate
+    source_paths:
+      - openapi.yaml
+sensitive_paths:
+  - pattern: .env*
+    risk: May contain local credentials.
+source_of_truth_paths:
+  - pattern: openapi.yaml
+    governs:
+      - apps/api/src/generated/**
+related_repositories:
+  - name: checkout-web
+    provider: github
+    repository_slug: acme/checkout-web
+    relationship: consumes_api
+    direction: inbound
+known_limitations:
+  - id: payments-mocked-local
+    summary: Payment provider calls are mocked locally.
+    impact: Real payment behavior must be checked in staging.
+    status: active
+    last_verified: "2026-07-28"
