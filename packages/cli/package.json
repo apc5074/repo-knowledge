@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@repo-knowledge/repository-contract": "workspace:*",
-    "@repo-knowledge/types": "workspace:*"
+    "@repo-knowledge/types": "workspace:*",
+    "commander": "^15.0.0"
   }
 }

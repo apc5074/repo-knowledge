@@ -1,174 +1,73 @@
 #!/usr/bin/env node
 
-import {
-  parseRepositoryContractFile,
-  RepositoryContractParseError
-} from "@repo-knowledge/repository-contract";
-import { typesPackage } from "@repo-knowledge/types";
+export {
+  boardCommands,
+  cliPackage,
+  createBoardProgram,
+  getVersionInfo,
+  renderHelp,
+  runBoardCli,
+  runBoardCliAsync
+} from "./app.js";
+export type { BoardCommandName, CliResult, VersionInfo } from "./app.js";
+export {
+  createCommandContext,
+  createCommandContextFromCommand,
+  loadRepositoryContractFromContext,
+  resolveContractPathFromContext
+} from "./command-context.js";
+export type {
+  AgentCommandMetadata,
+  CommandContext,
+  CommandContextInput,
+  CommandPrinter,
+  GlobalCliFlags,
+  OutputMode,
+  TelemetryClient
+} from "./command-context.js";
+export { defaultContractRelativePath, resolveContractPath } from "./config/contract-path.js";
+export type {
+  ContractPathResult,
+  ContractPathSource,
+  ResolveContractPathInput
+} from "./config/contract-path.js";
+export { loadRepositoryContract } from "./config/contract-loader.js";
+export type { ContractLoadIssue, ContractLoadResult } from "./config/contract-loader.js";
+export {
+  createRepositoryStateKey,
+  ensureLocalStateDirectories,
+  resolveLocalStatePaths
+} from "./config/local-state.js";
+export type {
+  LocalStatePaths,
+  LocalStatePlatform,
+  ResolveLocalStatePathsInput
+} from "./config/local-state.js";
+export { discoverRepositoryRoot } from "./config/repository-root.js";
+export type { RepositoryRootFoundBy, RepositoryRootResult } from "./config/repository-root.js";
+export { exitCodes } from "./errors/exit-codes.js";
+export type { ExitCode } from "./errors/exit-codes.js";
+export {
+  buildCommandResult,
+  buildFailureResult,
+  buildSuccessResult,
+  serializeCommandResult,
+  summarizeCommandResult
+} from "./output/result.js";
+export type {
+  BuildCommandResultInput,
+  CommandCandidateFinding,
+  CommandResult,
+  CommandResultError,
+  CommandResultStatus,
+  CommandReviewItem
+} from "./output/result.js";
+export { printHumanResult } from "./output/human.js";
+export type { HumanPrinterOptions } from "./output/human.js";
+export { printJsonResult } from "./output/json.js";
+export { printCommandResult } from "./output/printer.js";
 
-export const boardCommands = [
-  "init",
-  "start",
-  "status",
-  "doctor",
-  "explain",
-  "task",
-  "verify",
-  "contract",
-  "stop"
-] as const;
-
-export type BoardCommandName = (typeof boardCommands)[number];
-
-export const cliPackage = {
-  name: "@repo-knowledge/cli",
-  binary: "board",
-  phase: typesPackage.phase
-} as const;
-
-export type CliResult = {
-  readonly exitCode: 0 | 1;
-  readonly stdout: string;
-  readonly stderr: string;
-};
-
-export function renderHelp(): string {
-  return [
-    "board",
-    "",
-    "Usage:",
-    "  board <command>",
-    "",
-    "Commands:",
-    ...boardCommands.map((command) => `  ${command}`),
-    "",
-    "Contract commands:",
-    "  board contract validate [path] [--json]",
-    "",
-    "Phase 0 placeholder: command behavior is implemented in later phases."
-  ].join("\n");
-}
-
-export function runBoardCli(args: readonly string[]): CliResult {
-  const [command] = args;
-
-  if (command === undefined || command === "--help" || command === "-h") {
-    return {
-      exitCode: 0,
-      stdout: renderHelp(),
-      stderr: ""
-    };
-  }
-
-  if (isBoardCommand(command)) {
-    return {
-      exitCode: 0,
-      stdout: `board ${command} is a Phase 0 placeholder. Implementation belongs to a later phase.`,
-      stderr: ""
-    };
-  }
-
-  return {
-    exitCode: 1,
-    stdout: "",
-    stderr: `Unknown command: ${command}\n\n${renderHelp()}`
-  };
-}
-
-export async function runBoardCliAsync(args: readonly string[]): Promise<CliResult> {
-  if (args[0] === "contract" && args[1] === "validate") {
-    return validateContractCommand(args.slice(2));
-  }
-
-  return runBoardCli(args);
-}
-
-async function validateContractCommand(args: readonly string[]): Promise<CliResult> {
-  const json = args.includes("--json");
-  const filePath = args.find((arg) => arg !== "--json") ?? ".board/repository.yaml";
-
-  try {
-    const contract = await parseRepositoryContractFile(filePath);
-
-    if (json) {
-      return {
-        exitCode: 0,
-        stdout: JSON.stringify(
-          {
-            ok: true,
-            path: filePath,
-            repository: contract.repository.name
-          },
-          null,
-          2
-        ),
-        stderr: ""
-      };
-    }
-
-    return {
-      exitCode: 0,
-      stdout: `Valid repository contract: ${filePath}`,
-      stderr: ""
-    };
-  } catch (error) {
-    const message = formatValidationError(filePath, error, json);
-
-    return {
-      exitCode: 1,
-      stdout: json ? message : "",
-      stderr: json ? "" : message
-    };
-  }
-}
-
-function formatValidationError(filePath: string, error: unknown, json: boolean): string {
-  if (error instanceof RepositoryContractParseError) {
-    if (json) {
-      return JSON.stringify(
-        {
-          ok: false,
-          path: filePath,
-          kind: error.kind,
-          issues: error.issues,
-          message: error.message
-        },
-        null,
-        2
-      );
-    }
-
-    if (error.issues.length === 0) {
-      return `Invalid repository contract: ${filePath}\n${error.message}`;
-    }
-
-    return [
-      `Invalid repository contract: ${filePath}`,
-      ...error.issues.map((issue) => `  ${issue.path}: ${issue.message}`)
-    ].join("\n");
-  }
-
-  const message = error instanceof Error ? error.message : String(error);
-
-  if (json) {
-    return JSON.stringify(
-      {
-        ok: false,
-        path: filePath,
-        kind: "read",
-        message
-      },
-      null,
-      2
-    );
-  }
-
-  return `Could not read repository contract: ${filePath}\n${message}`;
-}
-
-function isBoardCommand(command: string): command is BoardCommandName {
-  return boardCommands.includes(command as BoardCommandName);
-}
+import { runBoardCliAsync } from "./app.js";
 
 if (isDirectExecution()) {
   const result = await runBoardCliAsync(process.argv.slice(2));
