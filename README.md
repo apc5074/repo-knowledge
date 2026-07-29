@@ -1,114 +1,133 @@
 # Board
 
-Board is an agentic repository readiness platform.
+Board is an agentic repo-readiness platform.
 
-The product goal is to make unfamiliar repositories easier for humans and external coding agents to understand, launch, change, and verify. Board will maintain repo-local readiness artifacts, task context, setup knowledge, and validation guidance through deterministic tools, LangGraph maintenance-agent workflows, MCP interfaces, and human approval gates.
+The idea is to make unfamiliar codebases easier for humans and coding agents to understand, run, change, and verify. Most repos have a lot of hidden knowledge: the real setup command, which tests matter, what not to edit, which files are generated, which folder is old but still alive, and what patterns the team actually uses. Board is meant to turn that into structured, evidence-backed context.
 
-Phase 0 is the engineering foundation. Most product behavior is intentionally placeholder-only.
+This is still early, but the direction is clear: Board should help agents work inside a repo without guessing.
 
-## Current Phase
+## What It Is Trying To Become
 
-Phase 0 establishes:
+Board should be able to:
 
-- TypeScript/Python monorepo structure
-- Root developer commands
-- Package boundaries
-- Placeholder app and package exports
-- Baseline lint, format, typecheck, test, and build gates
-- CI through `pnpm verify`
-- Agent boundary documentation
+- scan a repo and understand its apps, services, scripts, env vars, tests, docs, and generated files
+- maintain a `.board/repository.yaml` contract that describes how the repo works
+- give coding agents task-specific context through MCP
+- create repo-specific skills over time, like API writing standards based on the actual codebase
+- flag legacy, deprecated, replaced, or likely-unused code for developer review
+- choose the right checks for a change instead of blindly running everything
+- propose agent-made changes as PRs by default
+- allow local proposal apply only when a human explicitly asks for it
 
-Phase 0 does not implement repository contract schemas, real scanning, bootstrap execution, MCP serving, hosted indexing, GitHub App behavior, or full agent orchestration.
+The goal is not an agent that edits freely. The goal is a system where agents use typed tools, evidence, policy checks, and reviewable proposals.
 
-## Prerequisites
+## What Exists So Far
+
+Current progress:
+
+- TypeScript/Python monorepo foundation
+- shared package boundaries for CLI, scanner, MCP server, API, worker, web app, agent orchestration, tools, memory, policy, and approvals
+- Python agent-worker placeholder for future LangGraph workflows
+- root `pnpm verify` pipeline covering formatting, linting, typechecking, tests, and builds
+- repository contract package with Zod schemas, YAML parsing/serialization, validation, migrations, fixtures, examples, and tests
+- contract models for apps, services, setup, verification, environment variables, generated/sensitive/unsafe paths, related systems, and known limitations
+- detailed implementation plans for the CLI and deterministic scanner
+
+The most complete part right now is the repository contract layer. The scanner, CLI behavior, MCP server, hosted app, and actual agent orchestration are still being built out.
+
+## Agent Shape
+
+Board is planned around specialized maintenance agents:
+
+- **Scanner Agent**: finds deterministic repo facts
+- **Contract Agent**: proposes `.board/repository.yaml` updates
+- **Bootstrap Agent**: proves the repo can start
+- **Verification Agent**: picks and runs relevant checks
+- **Documentation Agent**: keeps onboarding and architecture docs fresh
+- **Skill Agent**: creates repo-specific agent skills from real code patterns
+- **Legacy Agent**: marks deprecated or likely-unused areas for review
+- **Context Agent**: builds task packets for humans and coding agents
+- **PR Agent**: turns maintenance work into reviewable PRs
+- **Policy/Safety Agent**: keeps tools, files, secrets, and approvals bounded
+
+## Architecture
+
+```mermaid
+flowchart TD
+  repo["Target Repository"]
+  cli["board CLI"]
+  contract[".board/repository.yaml"]
+  scanner["Deterministic Scanner"]
+  graph["Repository Graph"]
+  mcp["MCP Context Server"]
+  external["Coding Agents\nCodex, Claude Code, Cursor"]
+
+  orchestrator["Agent Orchestrator\nLangGraph"]
+  agents["Maintenance Agents\nContract, Docs, Skills, Legacy,\nVerify, Context, PR"]
+  tools["Policy-Checked Tools"]
+  memory["Memory + Retrieval\nPostgres + pgvector"]
+  github["GitHub App\nChecks, Issues, PRs"]
+
+  repo --> scanner
+  scanner --> contract
+  scanner --> graph
+  contract --> cli
+  contract --> mcp
+  graph --> mcp
+  mcp --> external
+
+  cli --> orchestrator
+  github --> orchestrator
+  orchestrator --> agents
+  agents --> tools
+  tools --> scanner
+  tools --> contract
+  tools --> graph
+  agents --> memory
+  agents --> github
+  github --> repo
+```
+
+## Tech Stack
+
+- TypeScript and Node.js for the CLI, API, MCP server, and shared packages
+- Python for maintenance-agent workers
+- Zod for runtime schemas and repo contract validation
+- LangGraph for agent orchestration
+- OpenAI Agents SDK and Anthropic SDK behind a model router
+- MCP for agent-facing context/tools
+- PostgreSQL + pgvector for hosted facts, memory, retrieval, proposals, approvals, and run history
+- Redis/Celery for hosted background workflows
+- GitHub App APIs for checks, comments, issues, and PRs
+
+## Local Setup
+
+Prereqs:
 
 - Node.js 22+
 - pnpm 9+
 - Python 3.12+
 - uv
 
-`uv` manages the Python virtual environment in `.venv` and uses `.uv-cache` for local cache data.
-
-## Install
-
 ```bash
 pnpm install
 pnpm py:sync
-```
-
-## Verify
-
-```bash
 pnpm verify
 ```
 
-`pnpm verify` runs:
-
-- Prettier format checks
-- ESLint
-- Ruff format and lint checks
-- TypeScript type checks
-- mypy
-- Vitest
-- pytest
-- TypeScript builds
-
-## Common Commands
+Useful commands:
 
 ```bash
-pnpm build
-pnpm clean
-pnpm dev
 pnpm format
-pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm build
 pnpm verify
 ```
 
-Python-specific commands:
+## Why I Am Building It
 
-```bash
-pnpm py:sync
-pnpm py:format
-pnpm py:format:check
-pnpm py:lint
-pnpm py:typecheck
-pnpm py:test
-```
+I like developer tools that make teams faster without making the codebase feel more chaotic. The best repos have a lot of quiet knowledge around them: setup tricks, testing habits, review expectations, old code paths, generated files, and patterns worth copying.
 
-## Package Map
-
-| Path                          | Owns                                                     |
-| ----------------------------- | -------------------------------------------------------- |
-| `packages/types`              | Shared TypeScript concepts and placeholder product types |
-| `packages/cli`                | `board` CLI placeholder and command registration         |
-| `packages/scanner`            | Deterministic scanner placeholder boundaries             |
-| `packages/mcp-server`         | MCP tool metadata and server boundary                    |
-| `packages/agent-orchestrator` | Agent run and workflow boundary placeholders             |
-| `packages/agent-tools`        | Policy-checked tool boundary placeholders                |
-| `packages/agent-memory`       | Agent memory boundary placeholders                       |
-| `packages/policy`             | Policy decision boundary placeholders                    |
-| `packages/approvals`          | Human approval boundary placeholders                     |
-| `apps/api`                    | Hosted API placeholder                                   |
-| `apps/worker`                 | TypeScript worker placeholder                            |
-| `apps/web`                    | Hosted UI placeholder                                    |
-| `python/agent-worker`         | Python LangGraph maintenance-agent worker placeholder    |
-
-## Core Docs
-
-- [MVP scope](docs/product/mvp-scope.md)
-- [Engineering conventions](docs/engineering/conventions.md)
-- [Local development](docs/engineering/local-development.md)
-- [Agent boundaries](docs/architecture/agent-boundaries.md)
-- [ADR index](docs/adr/README.md)
-- [Phase roadmap](plans/phases.md)
-- [Phase 0 plan](plans/phase%200/plan.md)
-
-## Contribution Expectations
-
-- Keep placeholders typed, tested, and easy to replace.
-- Run `pnpm verify` before handing off changes.
-- Do not add real product behavior in Phase 0 packages unless the relevant ticket explicitly asks for it.
-- Maintenance-agent behavior must use explicit tool boundaries and approval gates. Do not give agents unrestricted shell, filesystem, network, model, or GitHub access.
+Board is about making that knowledge available to both people and agents, with enough structure that it can be trusted and enough review flow that it does not become noise.
