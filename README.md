@@ -28,12 +28,9 @@ Current progress:
 - TypeScript/Python monorepo foundation
 - shared package boundaries for CLI, scanner, MCP server, API, worker, web app, agent orchestration, tools, memory, policy, and approvals
 - Python agent-worker placeholder for future LangGraph workflows
-- root `pnpm verify` pipeline covering formatting, linting, typechecking, tests, and builds
 - repository contract package with Zod schemas, YAML parsing/serialization, validation, migrations, fixtures, examples, and tests
 - contract models for apps, services, setup, verification, environment variables, generated/sensitive/unsafe paths, related systems, and known limitations
 - detailed implementation plans for the CLI and deterministic scanner
-
-The most complete part right now is the repository contract layer. The scanner, CLI behavior, MCP server, hosted app, and actual agent orchestration are still being built out.
 
 ## Agent Shape
 
