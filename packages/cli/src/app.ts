@@ -4,29 +4,20 @@ import { Command, CommanderError } from "commander";
 
 import { typesPackage } from "@repo-knowledge/types";
 
-import {
-  createCommandContext,
-  createCommandContextFromCommand,
-  loadRepositoryContractFromContext,
-  type CommandContext
-} from "./command-context.js";
-import { buildFailureResult, buildSuccessResult } from "./output/result.js";
+import { createCommandContext, createCommandContextFromCommand } from "./command-context.js";
+import { validateContractCommand } from "./commands/contract/validate.js";
+import { buildPlaceholderCommandResult, mvpPlaceholderCommands } from "./commands/placeholders.js";
+import { statusCommand } from "./commands/status.js";
+import { buildSuccessResult } from "./output/result.js";
 import { printCommandResult } from "./output/printer.js";
+import { runCommand, runCommandSync, type CliResult } from "./runner.js";
+
+export type { CliResult } from "./runner.js";
 
 const require = createRequire(import.meta.url);
 const packageJson = require("../package.json") as { readonly version: string };
 
-export const boardCommands = [
-  "init",
-  "start",
-  "status",
-  "doctor",
-  "explain",
-  "task",
-  "verify",
-  "contract",
-  "stop"
-] as const;
+export const boardCommands = [...mvpPlaceholderCommands.slice(0, 7), "contract", "stop"] as const;
 
 export type BoardCommandName = (typeof boardCommands)[number];
 
@@ -36,12 +27,6 @@ export const cliPackage = {
   version: packageJson.version,
   phase: typesPackage.phase
 } as const;
-
-export type CliResult = {
-  readonly exitCode: number;
-  readonly stdout: string;
-  readonly stderr: string;
-};
 
 export type VersionInfo = {
   readonly version: string;
@@ -96,8 +81,8 @@ export function createBoardProgram(options: BoardProgramOptions = {}): Command {
     .option("--no-color", "disable terminal colors")
     .option("-V, --version", "output the CLI version");
 
-  for (const command of boardCommands) {
-    if (command === "contract") {
+  for (const command of mvpPlaceholderCommands) {
+    if (command === "status") {
       continue;
     }
 
@@ -105,16 +90,45 @@ export function createBoardProgram(options: BoardProgramOptions = {}): Command {
       .command(command)
       .description(`${command} command placeholder`)
       .action(() => {
+        const context = createCommandContextFromCommand(registeredCommand);
+
         options.onResult?.(
-          placeholderCommand(command, createCommandContextFromCommand(registeredCommand))
+          runCommandSync({
+            command,
+            context,
+            handler: () => buildPlaceholderCommandResult(command, context)
+          })
         );
       });
   }
 
+  const status = program
+    .command("status")
+    .description("Report local repository and contract readiness")
+    .action(async () => {
+      const context = createCommandContextFromCommand(status);
+
+      programOptions.onResult?.(
+        await runCommand({
+          command: "status",
+          context,
+          handler: () => statusCommand(context)
+        })
+      );
+    });
+
   const contract = program.command("contract").description("Repository contract commands");
 
   contract.action(() => {
-    options.onResult?.(placeholderCommand("contract", createCommandContextFromCommand(contract)));
+    const context = createCommandContextFromCommand(contract);
+
+    options.onResult?.(
+      runCommandSync({
+        command: "contract",
+        context,
+        handler: () => buildPlaceholderCommandResult("contract", context)
+      })
+    );
   });
 
   contract
@@ -132,11 +146,16 @@ export function createBoardProgram(options: BoardProgramOptions = {}): Command {
         const context = createCommandContextFromCommand(command);
 
         programOptions.onResult?.(
-          await validateContractCommand(
-            filePath,
-            Boolean(commandOptions.json ?? globals?.json),
-            context
-          )
+          await runCommand({
+            command: "contract validate",
+            context,
+            handler: () =>
+              validateContractCommand(
+                filePath,
+                Boolean(commandOptions.json ?? globals?.json),
+                context
+              )
+          })
         );
       }
     );
@@ -253,75 +272,6 @@ function configureOutputRecursively(
   }
 }
 
-function placeholderCommand(command: BoardCommandName, context: CommandContext): CliResult {
-  void context;
-
-  return {
-    exitCode: 0,
-    stdout: `board ${command} is a Phase 2 placeholder. Implementation belongs to a later phase.`,
-    stderr: ""
-  };
-}
-
-async function validateContractCommand(
-  filePath: string | undefined,
-  json: boolean,
-  context: CommandContext
-): Promise<CliResult> {
-  const result = await loadRepositoryContractFromContext(context, filePath);
-
-  if (!result.ok) {
-    const message = formatContractLoadError(result, json);
-    return {
-      exitCode: result.exitCode,
-      stdout: json ? message : "",
-      stderr: json ? "" : message
-    };
-  }
-
-  if (json) {
-    const commandResult = buildSuccessResult(context, {
-      command: "contract validate",
-      summary: `Valid repository contract: ${result.path}`,
-      data: {
-        path: result.path,
-        repository: result.contract.repository.name
-      },
-      repository: {
-        name: result.contract.repository.name
-      },
-      contract: {
-        path: result.path,
-        valid: true
-      }
-    });
-
-    return {
-      exitCode: 0,
-      stdout: printCommandResult(context, commandResult),
-      stderr: ""
-    };
-  }
-
-  const commandResult = buildSuccessResult(context, {
-    command: "contract validate",
-    summary: `Valid repository contract: ${result.path}`,
-    repository: {
-      name: result.contract.repository.name
-    },
-    contract: {
-      path: result.path,
-      valid: true
-    }
-  });
-
-  return {
-    exitCode: 0,
-    stdout: printCommandResult(context, commandResult),
-    stderr: ""
-  };
-}
-
 function renderVersion(args: readonly string[]): CliResult {
   const context = createCommandContext({
     flags: {
@@ -349,46 +299,4 @@ function renderVersion(args: readonly string[]): CliResult {
     stdout: printCommandResult(context, commandResult),
     stderr: ""
   };
-}
-
-function formatContractLoadError(
-  error: Exclude<
-    Awaited<ReturnType<typeof loadRepositoryContractFromContext>>,
-    { readonly ok: true }
-  >,
-  json: boolean
-): string {
-  const context = createCommandContext({
-    flags: {
-      json
-    }
-  });
-  const commandResult = buildFailureResult(context, {
-    command: "contract validate",
-    summary: `Could not load repository contract${error.path ? `: ${error.path}` : ""}`,
-    errors: [
-      {
-        code: error.reason,
-        message: error.message,
-        path: error.path,
-        details: error.issues
-      },
-      ...error.issues.map((issue) => ({
-        code: "contract-issue",
-        message: `${issue.path}: ${issue.message}`,
-        path: issue.path
-      }))
-    ],
-    next_steps: error.nextSteps,
-    contract: {
-      path: error.path,
-      valid: false
-    }
-  });
-
-  if (json) {
-    return printCommandResult(context, commandResult);
-  }
-
-  return printCommandResult(context, commandResult);
 }

@@ -34,6 +34,7 @@ export type CommandPrinter = {
 export type TelemetryClient = {
   readonly enabled: boolean;
   readonly capture: (event: string, properties?: Record<string, unknown>) => void;
+  readonly flush?: () => void | Promise<void>;
 };
 
 export type CommandContext = {
@@ -189,5 +190,6 @@ const noopPrinter: CommandPrinter = {
 
 const noopTelemetry: TelemetryClient = {
   enabled: false,
-  capture: () => {}
+  capture: () => {},
+  flush: () => {}
 };

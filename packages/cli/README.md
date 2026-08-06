@@ -2,7 +2,7 @@
 
 Installable local `board` CLI package.
 
-Phase 2 establishes the public command surface, executable entrypoint, output conventions, and early contract validation behavior. Most product commands are honest placeholders until later phases implement repository scanning, bootstrap, verification, diagnostics, task context, MCP tools, and agent maintenance workflows.
+Phase 2 establishes the public command surface, executable entrypoint, output conventions, early contract validation behavior, basic repository status, and user preference config. Most product commands are honest placeholders until later phases implement repository scanning, bootstrap, verification, diagnostics, task context, MCP tools, and agent maintenance workflows.
 
 ## Executable
 
@@ -26,6 +26,21 @@ Command handlers build a shared context with current working directory, resolved
 Repository root discovery starts from `--cwd` when provided, otherwise the process cwd. It walks upward for `.git`, and can also identify a repository by `.board/repository.yaml` when `.git` is absent. Normal not-found cases return structured results instead of throwing.
 
 Contract path discovery respects `--config <path>` when present. Otherwise it resolves `.board/repository.yaml` under the discovered repository root, distinguishing missing repositories from missing contracts. Contract loading uses the repository contract package and maps missing contracts to exit code `4` and invalid contracts to exit code `5`.
+
+## User Config
+
+User config is a small preference layer for local CLI behavior. It does not store auth tokens or other secrets in Phase 2.
+
+By default, config resolves to `config.json` inside the local data root. Set `BOARD_CONFIG_PATH` to point at a different file. Supported JSON keys are:
+
+| Key                 | Type              | Default | Purpose                                          |
+| ------------------- | ----------------- | ------- | ------------------------------------------------ |
+| `telemetryEnabled`  | boolean           | `false` | Local preference for future telemetry hooks.     |
+| `defaultOutputMode` | `human` or `json` | `human` | Preferred output mode for future command wiring. |
+| `hostedApiUrl`      | string            | unset   | Future hosted Board API endpoint.                |
+| `updateChecks`      | boolean           | `false` | Future preference for CLI update check behavior. |
+
+Environment overrides are `BOARD_TELEMETRY`, `BOARD_OUTPUT`, `BOARD_API_URL`, and `BOARD_UPDATE_CHECKS`.
 
 ## Local State
 
@@ -66,6 +81,14 @@ The common command result envelope includes `ok`, `status`, `command`, `summary`
 
 Human output is rendered from the same result envelope. It stays concise by default, includes warnings/errors/next steps when present, suppresses successful output with `--quiet`, adds safe command/session/repository/contract diagnostics with `--verbose`, and emits color only when color is enabled and stdout is a TTY. JSON output always prints one parseable object, never mixes human text into JSON, and does not emit terminal color codes.
 
+## Errors and Runner
+
+Operational failures use `BoardError`, which carries a stable error code, documented exit code, message, safe details, safe metadata, and next steps. Known errors are formatted without stack traces by default. Unexpected errors are converted to the internal-error shape and only include stack details when `--verbose` is enabled.
+
+Registered command handlers run through the shared command runner. The runner builds on command context, records duration, normalizes successful results, catches known and unexpected errors, selects the output printer, returns the process exit code, records telemetry events, and flushes telemetry when a client provides a flush hook.
+
+MVP placeholder handlers live in command modules and are registered through the same runner as real commands. They support human and JSON output, have command-specific help, and state clearly that implementation belongs to a later phase. `board status` is a real command that reports repository discovery, contract validity, local state paths, CLI version, and a deferred runtime-services note. `board contract validate` is a real command module wired into the command tree; it uses Phase 1 contract parsing, supports explicit path and `--config`, and returns structured validation details in JSON failure output.
+
 ## Exit Codes
 
 | Code | Meaning                     |
@@ -88,17 +111,17 @@ Early placeholder code may still return `1` for failures until the full Phase 2 
 
 ## MVP Commands
 
-| Command                   | Phase 2 behavior                                             |
-| ------------------------- | ------------------------------------------------------------ |
-| `board init`              | Placeholder. Later initializes `.board/repository.yaml`.     |
-| `board start`             | Placeholder. Later starts local repo services/apps.          |
-| `board status`            | Placeholder. Later reports repository readiness.             |
-| `board doctor`            | Placeholder. Later diagnoses setup and runtime issues.       |
-| `board explain`           | Placeholder. Later explains repository architecture/context. |
-| `board task`              | Placeholder. Later assembles task-specific context.          |
-| `board verify`            | Placeholder. Later runs selected verification checks.        |
-| `board stop`              | Placeholder. Later stops local Board-managed processes.      |
-| `board contract validate` | Implemented thin shell using the repository contract parser. |
+| Command                   | Phase 2 behavior                                                                  |
+| ------------------------- | --------------------------------------------------------------------------------- |
+| `board init`              | Runner-backed placeholder. Later initializes `.board/repository.yaml`.            |
+| `board start`             | Runner-backed placeholder. Later starts local repo services/apps.                 |
+| `board status`            | Reports repository discovery, contract state, local state paths, and CLI version. |
+| `board doctor`            | Runner-backed placeholder. Later diagnoses setup and runtime issues.              |
+| `board explain`           | Runner-backed placeholder. Later explains repository architecture/context.        |
+| `board task`              | Runner-backed placeholder. Later assembles task-specific context.                 |
+| `board verify`            | Runner-backed placeholder. Later runs selected verification checks.               |
+| `board stop`              | Runner-backed placeholder. Later stops local Board-managed processes.             |
+| `board contract validate` | Implemented thin shell using the repository contract parser.                      |
 
 Canonical contract validation command:
 
@@ -106,6 +129,8 @@ Canonical contract validation command:
 board --help
 board --version
 board --json --version
+board status
+board --json status
 board contract validate .board/repository.yaml
 board contract validate .board/repository.yaml --json
 ```
