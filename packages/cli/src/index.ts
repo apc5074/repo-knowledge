@@ -19,6 +19,8 @@ export {
 export { validateContractCommand } from "./commands/contract/validate.js";
 export { buildPlaceholderCommandResult, mvpPlaceholderCommands } from "./commands/placeholders.js";
 export type { MvpPlaceholderCommand } from "./commands/placeholders.js";
+export { scanCommand } from "./commands/scan.js";
+export type { ScanCommandData, ScanCommandOptions } from "./commands/scan.js";
 export { statusCommand } from "./commands/status.js";
 export type {
   AgentCommandMetadata,

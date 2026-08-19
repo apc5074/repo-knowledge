@@ -1,0 +1,7 @@
+{
+  "name": "invalid-config-repo",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+  }
+}

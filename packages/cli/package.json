@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@repo-knowledge/repository-contract": "workspace:*",
+    "@repo-knowledge/scanner-core": "workspace:*",
     "@repo-knowledge/types": "workspace:*",
     "commander": "^15.0.0"
   }

@@ -1,0 +1,13 @@
+{
+  "name": "devcontainer-repo",
+  "private": true,
+  "scripts": {
+    "dev": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "express": "^5.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}

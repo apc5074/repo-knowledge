@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { typesPackage } from "@repo-knowledge/types";
 
 import {
+  normalizeScanError,
   runDetector,
   type RepositoryDetector,
   type ScanError,
@@ -57,18 +58,32 @@ export async function scanRepository(input: ScanRepositoryInput): Promise<Reposi
   const start = Date.now();
   const detectors = [...(input.detectors ?? [])];
   const repositoryRoot = resolve(input.root);
-  const inventory = input.inventory ?? (await buildFileInventory({ root: repositoryRoot }));
+  let inventory: ScanFileInventory;
+
+  try {
+    inventory = input.inventory ?? (await buildFileInventory({ root: repositoryRoot }));
+  } catch (error) {
+    return fatalScanResult({
+      input,
+      repositoryRoot,
+      startedAt,
+      duration_ms: Date.now() - start,
+      error
+    });
+  }
+
+  const facts: ScannerFact[] = [];
+  const warnings: ScanWarning[] = [...(inventory.warnings ?? [])];
+  const errors: ScanError[] = [];
   const inventoryReader = createInventoryReader(inventory);
   const context = {
     repositoryRoot,
     startedAt,
     inventory,
+    facts,
     readFile: inventoryReader.readText,
     readFileIfSafe: inventoryReader.readTextIfSafe
   };
-  const facts: ScannerFact[] = [];
-  const warnings: ScanWarning[] = [...(inventory.warnings ?? [])];
-  const errors: ScanError[] = [];
   let detectorsSucceeded = 0;
   let detectorsFailed = 0;
 
@@ -105,6 +120,40 @@ export async function scanRepository(input: ScanRepositoryInput): Promise<Reposi
       warnings_emitted: warnings.length,
       errors_emitted: errors.length,
       files_in_inventory: context.inventory.files.length
+    }
+  };
+}
+
+function fatalScanResult(input: {
+  readonly input: ScanRepositoryInput;
+  readonly repositoryRoot: string;
+  readonly startedAt: Date;
+  readonly duration_ms: number;
+  readonly error: unknown;
+}): RepositoryScanResult {
+  const error = normalizeScanError(input.error, {
+    recoverable: false
+  });
+
+  return {
+    schema_version: 1,
+    tool_name: "scan_repository",
+    agent_run_id: input.input.agent_run_id,
+    tool_call_id: input.input.tool_call_id,
+    repository_root: input.repositoryRoot,
+    scanned_at: input.startedAt.toISOString(),
+    duration_ms: input.duration_ms,
+    facts: [],
+    warnings: [],
+    errors: [error],
+    stats: {
+      detector_count: input.input.detectors?.length ?? 0,
+      detectors_succeeded: 0,
+      detectors_failed: 0,
+      facts_emitted: 0,
+      warnings_emitted: 0,
+      errors_emitted: 1,
+      files_in_inventory: 0
     }
   };
 }

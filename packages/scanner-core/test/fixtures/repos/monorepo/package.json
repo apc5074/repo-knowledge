@@ -1,0 +1,12 @@
+{
+  "name": "fixture-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "pnpm -r dev",
+    "test": "pnpm -r test"
+  }
+}

@@ -59,6 +59,12 @@ export async function buildFileInventory(
   const root = resolve(input.root);
   const maxFileSizeBytes = input.maxFileSizeBytes ?? defaultMaxFileSizeBytes;
   const warnings: ScanWarning[] = [];
+  const rootStat = await stat(root);
+
+  if (!rootStat.isDirectory()) {
+    throw new Error(`Repository root is not a directory: ${root}`);
+  }
+
   const listed = await listInventoryPaths(root, input);
   const entries: FileInventoryEntry[] = [];
 

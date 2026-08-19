@@ -16,6 +16,7 @@ const context = {
   repositoryRoot: "/tmp/example",
   startedAt: new Date("2026-01-01T00:00:00.000Z"),
   inventory,
+  facts: [],
   readFile: reader.readText,
   readFileIfSafe: reader.readTextIfSafe
 };

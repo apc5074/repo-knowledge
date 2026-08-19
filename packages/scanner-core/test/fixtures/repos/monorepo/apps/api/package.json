@@ -1,0 +1,11 @@
+{
+  "name": "@fixture/api",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "fastify": "^5.0.0",
+    "pg": "^8.0.0"
+  }
+}

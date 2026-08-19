@@ -1,0 +1,12 @@
+{
+  "name": "api-plus-worker",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "worker": "tsx src/worker.ts"
+  },
+  "dependencies": {
+    "bullmq": "^5.0.0",
+    "express": "^4.18.0",
+    "ioredis": "^5.0.0"
+  }
+}

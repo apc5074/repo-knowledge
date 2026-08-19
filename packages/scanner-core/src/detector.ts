@@ -38,6 +38,7 @@ export type ScanContext = {
   readonly repositoryRoot: string;
   readonly startedAt: Date;
   readonly inventory: ScanFileInventory;
+  readonly facts: readonly ScannerFact[];
   readonly readFile: InventoryReader["readText"];
   readonly readFileIfSafe: InventoryReader["readTextIfSafe"];
 };
@@ -65,7 +66,7 @@ export async function runDetector(
   const start = Date.now();
 
   try {
-    const result = normalizeDetectorResult(await detector.run(context));
+    const result = normalizeDetectorResult(await detector.run(context), detector.name);
     const duration = Date.now() - start;
 
     return {
@@ -89,11 +90,10 @@ export async function runDetector(
         facts: [],
         warnings: [],
         errors: [
-          {
+          normalizeScanError(error, {
             detector: detector.name,
-            message: error instanceof Error ? error.message : String(error),
             recoverable: true
-          }
+          })
         ],
         stats: {
           duration_ms: duration
@@ -105,11 +105,56 @@ export async function runDetector(
   }
 }
 
-export function normalizeDetectorResult(result: DetectorResult): Required<DetectorResult> {
+export function normalizeDetectorResult(
+  result: DetectorResult,
+  detector?: string
+): Required<DetectorResult> {
   return {
     facts: result.facts ?? [],
-    warnings: result.warnings ?? [],
-    errors: result.errors ?? [],
+    warnings: (result.warnings ?? []).map((warning) => normalizeScanWarning(warning, detector)),
+    errors: (result.errors ?? []).map((error) => normalizeScanError(error, { detector })),
     stats: result.stats ?? {}
   };
+}
+
+export function normalizeScanWarning(warning: ScanWarning, detector?: string): ScanWarning {
+  return {
+    ...((warning.detector ?? detector) ? { detector: warning.detector ?? detector } : {}),
+    ...(warning.path ? { path: warning.path } : {}),
+    message: warning.message
+  };
+}
+
+export function normalizeScanError(
+  error: unknown,
+  defaults: {
+    readonly detector?: string;
+    readonly path?: string;
+    readonly recoverable?: boolean;
+  } = {}
+): ScanError {
+  if (isScanError(error)) {
+    return {
+      ...((error.detector ?? defaults.detector)
+        ? { detector: error.detector ?? defaults.detector }
+        : {}),
+      ...((error.path ?? defaults.path) ? { path: error.path ?? defaults.path } : {}),
+      message: error.message,
+      recoverable: error.recoverable,
+      ...(error.details !== undefined ? { details: error.details } : {})
+    };
+  }
+
+  return {
+    ...(defaults.detector ? { detector: defaults.detector } : {}),
+    ...(defaults.path ? { path: defaults.path } : {}),
+    message: error instanceof Error ? error.message : String(error),
+    recoverable: defaults.recoverable ?? true
+  };
+}
+
+function isScanError(error: unknown): error is ScanError {
+  return (
+    error !== null && typeof error === "object" && "message" in error && "recoverable" in error
+  );
 }

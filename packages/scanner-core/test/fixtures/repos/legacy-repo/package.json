@@ -1,0 +1,11 @@
+{
+  "name": "legacy-repo",
+  "private": true,
+  "scripts": {
+    "legacy:seed": "node scripts/missing-old-seed.js",
+    "start": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "express": "^5.0.0"
+  }
+}

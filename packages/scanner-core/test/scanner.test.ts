@@ -1,8 +1,14 @@
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
   createScannerEvidence,
   createScannerFact,
+  createJavaScriptManifestDetector,
+  normalizeScanError,
   scanRepository,
   scannerCorePackage,
   type RepositoryDetector
@@ -61,7 +67,10 @@ describe("@repo-knowledge/scanner-core", () => {
 
     await scanRepository({
       root: "/tmp/example",
-      detectors: [first, second]
+      detectors: [first, second],
+      inventory: {
+        files: []
+      }
     });
 
     expect(order).toEqual(["first", "second"]);
@@ -126,6 +135,79 @@ describe("@repo-knowledge/scanner-core", () => {
     });
   });
 
+  it("keeps malformed manifests as warnings without failing the full scan", async () => {
+    const root = await mkdtemp(join(tmpdir(), "repo-knowledge-scanner-malformed-"));
+    const packageJsonPath = join(root, "package.json");
+    await writeFile(packageJsonPath, "{");
+
+    const result = await scanRepository({
+      root,
+      detectors: [createJavaScriptManifestDetector(), createDetector("continues", () => ({}))],
+      inventory: {
+        files: ["package.json"],
+        entries: [
+          {
+            path: "package.json",
+            absolutePath: packageJsonPath,
+            extension: ".json",
+            size_bytes: 1,
+            category: "config",
+            manifest: true,
+            content_safe: true
+          }
+        ]
+      }
+    });
+
+    expect(result.stats).toMatchObject({
+      detectors_succeeded: 2,
+      detectors_failed: 0,
+      errors_emitted: 0
+    });
+    expect(result.warnings).toEqual([
+      expect.objectContaining({
+        detector: "javascript-manifest",
+        path: "package.json"
+      })
+    ]);
+  });
+
+  it("returns a fatal scan error when inventory construction cannot proceed", async () => {
+    const result = await scanRepository({
+      root: "/tmp/repo-knowledge-missing-root-for-fatal-scan-test",
+      detectors: [createDetector("never-runs", () => ({}))]
+    });
+
+    expect(result.facts).toEqual([]);
+    expect(result.warnings).toEqual([]);
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        recoverable: false
+      })
+    ]);
+    expect(result.stats).toMatchObject({
+      detector_count: 1,
+      detectors_succeeded: 0,
+      detectors_failed: 0,
+      errors_emitted: 1,
+      files_in_inventory: 0
+    });
+  });
+
+  it("normalizes thrown detector errors with detector name and optional path", () => {
+    expect(
+      normalizeScanError(new Error("Could not read file."), {
+        detector: "fixture",
+        path: "package.json"
+      })
+    ).toEqual({
+      detector: "fixture",
+      path: "package.json",
+      message: "Could not read file.",
+      recoverable: true
+    });
+  });
+
   it("isolates failing detectors without crashing the full scan", async () => {
     const result = await scanRepository({
       root: "/tmp/example",
@@ -141,7 +223,10 @@ describe("@repo-knowledge/scanner-core", () => {
             }
           ]
         }))
-      ]
+      ],
+      inventory: {
+        files: []
+      }
     });
 
     expect(result.stats).toMatchObject({

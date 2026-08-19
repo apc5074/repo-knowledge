@@ -1,0 +1,14 @@
+{
+  "name": "Board Fixture",
+  "dockerComposeFile": "../compose.yml",
+  "service": "api",
+  "workspaceFolder": "/workspace",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    }
+  },
+  "forwardPorts": [3000, 5432],
+  "postCreateCommand": "pnpm install",
+  "postStartCommand": "pnpm dev"
+}

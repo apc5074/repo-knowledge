@@ -1,0 +1,2 @@
+def upgrade() -> None:
+    pass

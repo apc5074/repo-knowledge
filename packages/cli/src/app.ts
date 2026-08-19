@@ -7,6 +7,7 @@ import { typesPackage } from "@repo-knowledge/types";
 import { createCommandContext, createCommandContextFromCommand } from "./command-context.js";
 import { validateContractCommand } from "./commands/contract/validate.js";
 import { buildPlaceholderCommandResult, mvpPlaceholderCommands } from "./commands/placeholders.js";
+import { scanCommand } from "./commands/scan.js";
 import { statusCommand } from "./commands/status.js";
 import { buildSuccessResult } from "./output/result.js";
 import { printCommandResult } from "./output/printer.js";
@@ -17,7 +18,13 @@ export type { CliResult } from "./runner.js";
 const require = createRequire(import.meta.url);
 const packageJson = require("../package.json") as { readonly version: string };
 
-export const boardCommands = [...mvpPlaceholderCommands.slice(0, 7), "contract", "stop"] as const;
+export const boardCommands = [
+  ...mvpPlaceholderCommands.slice(0, 3),
+  "scan",
+  ...mvpPlaceholderCommands.slice(3, 7),
+  "contract",
+  "stop"
+] as const;
 
 export type BoardCommandName = (typeof boardCommands)[number];
 
@@ -116,6 +123,41 @@ export function createBoardProgram(options: BoardProgramOptions = {}): Command {
         })
       );
     });
+
+  program
+    .command("scan")
+    .description("Scan repository facts for debugging and future init workflows")
+    .option("--json", "emit machine-readable JSON output")
+    .option("--include-untracked", "include untracked files in the scan inventory")
+    .action(
+      async (commandOptions: { readonly json?: boolean; readonly includeUntracked?: boolean }) => {
+        const globals = program.opts<{
+          readonly json?: boolean;
+          readonly quiet?: boolean;
+          readonly verbose?: boolean;
+          readonly cwd?: string;
+          readonly config?: string;
+          readonly color?: boolean;
+        }>();
+        const context = createCommandContext({
+          flags: {
+            ...globals,
+            json: Boolean(commandOptions.json ?? globals.json)
+          }
+        });
+
+        programOptions.onResult?.(
+          await runCommand({
+            command: "scan",
+            context,
+            handler: () =>
+              scanCommand(context, {
+                includeUntracked: commandOptions.includeUntracked
+              })
+          })
+        );
+      }
+    );
 
   const contract = program.command("contract").description("Repository contract commands");
 

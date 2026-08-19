@@ -141,7 +141,12 @@ function dockerfileFact(info: DockerfileInfo, text: string): ScannerFact {
   });
 }
 
-function commandFact(info: DockerfileInfo, name: string, command: string, text: string): ScannerFact {
+function commandFact(
+  info: DockerfileInfo,
+  name: string,
+  command: string,
+  text: string
+): ScannerFact {
   return createScannerFact({
     kind: "command.detected",
     value: {
@@ -170,7 +175,11 @@ function isDockerfilePath(path: string): boolean {
 }
 
 function manifestNames(copyArgs: string): readonly string[] {
-  return copyArgs.match(/\b(package\.json|pnpm-lock\.yaml|requirements(?:-[\w-]+)?\.txt|pyproject\.toml|uv\.lock|poetry\.lock)\b/g) ?? [];
+  return (
+    copyArgs.match(
+      /\b(package\.json|pnpm-lock\.yaml|requirements(?:-[\w-]+)?\.txt|pyproject\.toml|uv\.lock|poetry\.lock)\b/g
+    ) ?? []
+  );
 }
 
 function dockerfileRoot(path: string): string {

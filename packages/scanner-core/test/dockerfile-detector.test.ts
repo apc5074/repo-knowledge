@@ -4,7 +4,12 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { buildFileInventory, createDockerfileDetector, parseDockerfile, scanRepository } from "../src/index.js";
+import {
+  buildFileInventory,
+  createDockerfileDetector,
+  parseDockerfile,
+  scanRepository
+} from "../src/index.js";
 
 describe("Dockerfile detector", () => {
   it("parses Dockerfile runtime metadata", () => {
@@ -16,8 +21,8 @@ describe("Dockerfile detector", () => {
           "WORKDIR /app",
           "COPY package.json pnpm-lock.yaml ./",
           "EXPOSE 3000 9229/tcp",
-          "ENTRYPOINT [\"node\"]",
-          "CMD [\"dist/index.js\"]"
+          'ENTRYPOINT ["node"]',
+          'CMD ["dist/index.js"]'
         ].join("\n")
       )
     ).toEqual({
@@ -26,8 +31,8 @@ describe("Dockerfile detector", () => {
       stages: ["base"],
       exposedPorts: [3000, 9229],
       workdir: "/app",
-      command: "[\"dist/index.js\"]",
-      entrypoint: "[\"node\"]",
+      command: '["dist/index.js"]',
+      entrypoint: '["node"]',
       copiedManifests: ["package.json", "pnpm-lock.yaml"]
     });
   });

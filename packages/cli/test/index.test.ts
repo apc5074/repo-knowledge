@@ -39,6 +39,7 @@ describe("@repo-knowledge/cli", () => {
       "init",
       "start",
       "status",
+      "scan",
       "doctor",
       "explain",
       "task",
@@ -113,7 +114,9 @@ describe("@repo-knowledge/cli", () => {
   });
 
   it("returns placeholder output for commands still deferred past Phase 2", () => {
-    for (const command of boardCommands.filter((command) => command !== "status")) {
+    for (const command of boardCommands.filter(
+      (command) => command !== "status" && command !== "scan"
+    )) {
       expect(runBoardCli([command])).toEqual({
         exitCode: 0,
         stdout: `board ${command} is a Phase 2 placeholder. Implementation belongs to a later phase.`,
@@ -133,6 +136,63 @@ describe("@repo-knowledge/cli", () => {
       command: "init",
       summary: "board init is a Phase 2 placeholder. Implementation belongs to a later phase."
     });
+  });
+
+  it("scans a repository fixture with human-readable output", async () => {
+    const fixtureRoot = join(packageRoot, "../scanner-core/test/fixtures/repos/typescript-api");
+    const result = await runCli(["scan", "--include-untracked"], {
+      cwd: fixtureRoot
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain("Scanned ");
+    expect(result.stdout).toContain(" facts");
+  });
+
+  it("scans a repository fixture with structured JSON output", async () => {
+    const fixtureRoot = join(packageRoot, "../scanner-core/test/fixtures/repos/typescript-api");
+    const result = await runCli(["scan", "--json", "--include-untracked"], {
+      cwd: fixtureRoot
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toBe("");
+
+    const parsed = parseJsonResult<{
+      readonly scan: {
+        readonly facts: readonly { readonly kind: string; readonly evidence: readonly unknown[] }[];
+        readonly warnings: readonly unknown[];
+        readonly errors: readonly unknown[];
+        readonly stats: { readonly files_in_inventory: number };
+      };
+    }>(result);
+
+    expect(parsed).toMatchObject({
+      ok: true,
+      command: "scan",
+      data: {
+        scan: {
+          tool_name: "scan_repository",
+          errors: [],
+          stats: {
+            files_in_inventory: expect.any(Number)
+          }
+        }
+      }
+    });
+    expect(parsed.data?.scan.facts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "framework.detected",
+          evidence: expect.any(Array)
+        }),
+        expect.objectContaining({
+          kind: "database.dependency_detected",
+          evidence: expect.any(Array)
+        })
+      ])
+    );
   });
 
   it("keeps the executable package metadata and shebang in place", async () => {

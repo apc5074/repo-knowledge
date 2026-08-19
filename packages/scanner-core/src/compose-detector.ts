@@ -187,7 +187,7 @@ function environmentFact(path: string, service: string, name: string, text: stri
     },
     confidence: "high",
     detector: detectorName,
-    evidence: [serviceEvidence(path, name, text)]
+    evidence: [environmentEvidence(path, name, text)]
   });
 }
 
@@ -234,7 +234,10 @@ function commandFact(path: string, service: ComposeService, text: string): Scann
 }
 
 function parseService(name: string, service: unknown): ComposeService {
-  const value = service && typeof service === "object" && !Array.isArray(service) ? (service as Record<string, unknown>) : {};
+  const value =
+    service && typeof service === "object" && !Array.isArray(service)
+      ? (service as Record<string, unknown>)
+      : {};
 
   return {
     name,
@@ -256,7 +259,9 @@ function isComposePath(path: string): boolean {
 }
 
 function isPostgresService(service: ComposeService): boolean {
-  return /postgres|postgis/i.test(`${service.name} ${service.image ?? ""} ${service.ports.join(" ")}`);
+  return /postgres|postgis/i.test(
+    `${service.name} ${service.image ?? ""} ${service.ports.join(" ")}`
+  );
 }
 
 function isRedisService(service: ComposeService): boolean {
@@ -293,7 +298,11 @@ function stringList(value: unknown): readonly string[] {
 
 function environmentNames(value: unknown): readonly string[] {
   if (Array.isArray(value)) {
-    return value.map(String).map((entry) => entry.split("=")[0]!).filter(Boolean).sort();
+    return value
+      .map(String)
+      .map((entry) => entry.split("=")[0]!)
+      .filter(Boolean)
+      .sort();
   }
 
   if (value && typeof value === "object") {
@@ -336,11 +345,34 @@ function serviceEvidence(path: string, needle: string, text: string) {
   });
 }
 
+function environmentEvidence(path: string, name: string, text: string) {
+  const lineNumber = text.split(/\r?\n/).findIndex((line) => line.includes(name));
+
+  return createEvidenceFromLocation({
+    kind: "config",
+    sourcePath: path,
+    detector: detectorName,
+    location:
+      lineNumber === -1
+        ? { line_start: 1, line_end: 1, excerpt: name }
+        : {
+            line_start: lineNumber + 1,
+            line_end: lineNumber + 1,
+            excerpt: name
+          }
+  });
+}
+
 function dedupeFacts(facts: readonly ScannerFact[]): readonly ScannerFact[] {
   const seen = new Set<string>();
 
   return facts.filter((fact) => {
-    const value = fact.value as { name?: string; path?: string; service?: string; command?: string };
+    const value = fact.value as {
+      name?: string;
+      path?: string;
+      service?: string;
+      command?: string;
+    };
     const key = `${fact.kind}:${value.path ?? ""}:${value.name ?? ""}:${value.service ?? ""}:${value.command ?? ""}`;
 
     if (seen.has(key)) {

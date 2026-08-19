@@ -1,0 +1,10 @@
+{
+  "name": "generated-repo",
+  "private": true,
+  "scripts": {
+    "generate": "openapi-typescript schema/openapi.json -o src/generated/api.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.0.0"
+  }
+}

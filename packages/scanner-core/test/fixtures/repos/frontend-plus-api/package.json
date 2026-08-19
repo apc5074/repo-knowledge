@@ -1,0 +1,13 @@
+{
+  "name": "frontend-plus-api",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "api": "tsx server/index.ts",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "react": "^19.0.0",
+    "vite": "^7.0.0"
+  }
+}

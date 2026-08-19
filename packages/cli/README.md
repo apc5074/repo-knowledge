@@ -11,6 +11,7 @@ The package exposes the `board` binary:
 ```bash
 board --help
 board contract validate .board/repository.yaml
+board scan --json
 ```
 
 The package metadata maps `board` to `./dist/index.js`. The source entrypoint is `src/index.ts`, which contains the shebang and delegates to the testable app logic in `src/app.ts`.
@@ -21,6 +22,7 @@ Local development commands:
 pnpm --filter @repo-knowledge/cli build
 node packages/cli/dist/index.js --help
 node packages/cli/dist/index.js --json status
+node packages/cli/dist/index.js scan --json
 node packages/cli/dist/index.js contract validate .board/repository.yaml
 ```
 
@@ -110,7 +112,7 @@ Telemetry defaults to disabled and requires no network access. The interface inc
 
 Interrupt handling maps controlled cancellation to the `interrupted` error code and exit code `8`. Runner tests can pass an abort signal directly; future entrypoint/runtime work can attach the provided `SIGINT`/`SIGTERM` handlers and cleanup hooks without changing command result output.
 
-MVP placeholder handlers live in command modules and are registered through the same runner as real commands. They support human and JSON output, have command-specific help, and state clearly that implementation belongs to a later phase. `board status` is a real command that reports repository discovery, contract validity, local state paths, CLI version, and a deferred runtime-services note. `board contract validate` is a real command module wired into the command tree; it uses Phase 1 contract parsing, supports explicit path and `--config`, and returns structured validation details in JSON failure output.
+MVP placeholder handlers live in command modules and are registered through the same runner as real commands. They support human and JSON output, have command-specific help, and state clearly that implementation belongs to a later phase. `board status` is a real command that reports repository discovery, contract validity, local state paths, CLI version, and a deferred runtime-services note. `board scan` is an experimental developer command that runs the deterministic scanner, prints a concise human summary by default, and includes the normalized scan result under `data.scan` for JSON output. `board contract validate` is a real command module wired into the command tree; it uses Phase 1 contract parsing, supports explicit path and `--config`, and returns structured validation details in JSON failure output.
 
 ## Testing Commands
 
@@ -143,6 +145,7 @@ Early placeholder code may still return `1` for failures until the full Phase 2 
 | `board init`              | Runner-backed placeholder. Later initializes `.board/repository.yaml`.            |
 | `board start`             | Runner-backed placeholder. Later starts local repo services/apps.                 |
 | `board status`            | Reports repository discovery, contract state, local state paths, and CLI version. |
+| `board scan`              | Runs deterministic scanner and prints human or JSON scan output.                  |
 | `board doctor`            | Runner-backed placeholder. Later diagnoses setup and runtime issues.              |
 | `board explain`           | Runner-backed placeholder. Later explains repository architecture/context.        |
 | `board task`              | Runner-backed placeholder. Later assembles task-specific context.                 |
@@ -158,6 +161,8 @@ board --version
 board --json --version
 board status
 board --json status
+board scan
+board scan --json
 board contract validate .board/repository.yaml
 board contract validate .board/repository.yaml --json
 ```

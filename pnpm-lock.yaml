@@ -83,6 +83,9 @@ importers:
       '@repo-knowledge/repository-contract':
         specifier: workspace:*
         version: link:../repository-contract
+      '@repo-knowledge/scanner-core':
+        specifier: workspace:*
+        version: link:../scanner-core
       '@repo-knowledge/types':
         specifier: workspace:*
         version: link:../types

@@ -4,7 +4,12 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { buildFileInventory, createComposeDetector, parseComposeFile, scanRepository } from "../src/index.js";
+import {
+  buildFileInventory,
+  createComposeDetector,
+  parseComposeFile,
+  scanRepository
+} from "../src/index.js";
 
 describe("Compose detector", () => {
   it("parses services through YAML without env values", () => {
@@ -17,7 +22,7 @@ describe("Compose detector", () => {
         "      context: .",
         "    command: pnpm dev",
         "    ports:",
-        "      - \"3000:3000\"",
+        '      - "3000:3000"',
         "    environment:",
         "      DATABASE_URL: postgres://secret",
         "      REDIS_URL: redis://redis:6379",
@@ -27,7 +32,7 @@ describe("Compose detector", () => {
         "  db:",
         "    image: postgres:16",
         "    ports:",
-        "      - \"5432:5432\"",
+        '      - "5432:5432"',
         "  redis:",
         "    image: redis:7"
       ].join("\n")
@@ -92,11 +97,11 @@ describe("Compose detector", () => {
         "  db:",
         "    image: postgres:16",
         "    ports:",
-        "      - \"5432:5432\"",
+        '      - "5432:5432"',
         "  redis:",
         "    image: redis:7",
         "    healthcheck:",
-        "      test: [\"CMD\", \"redis-cli\", \"ping\"]"
+        '      test: ["CMD", "redis-cli", "ping"]'
       ].join("\n")
     });
     const inventory = await buildFileInventory({

@@ -1,0 +1,11 @@
+[project]
+name = "python-api"
+dependencies = [
+  "fastapi",
+  "uvicorn",
+  "psycopg",
+  "sqlalchemy",
+]
+
+[dependency-groups]
+dev = ["pytest", "ruff", "mypy"]
