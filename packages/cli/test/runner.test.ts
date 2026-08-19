@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSuccessResult,
   contractNotFoundError,
+  createInterruptController,
   createCommandContext,
   exitCodes,
   runCommand,
@@ -39,7 +40,25 @@ describe("command runner", () => {
       stdout: expect.stringContaining("Repository ready"),
       stderr: ""
     });
-    expect(events).toEqual(["command.completed", "flush"]);
+    expect(events).toEqual(["command.started", "command.completed", "flush"]);
+  });
+
+  it("keeps telemetry disabled by default while preserving lifecycle hooks", async () => {
+    const context = createCommandContext({ sessionId: "session-1" });
+
+    expect(context.telemetry.enabled).toBe(false);
+
+    const result = await runCommand({
+      command: "status",
+      context,
+      handler: () =>
+        buildSuccessResult(context, {
+          command: "status",
+          summary: "Repository ready"
+        })
+    });
+
+    expect(result.exitCode).toBe(exitCodes.success);
   });
 
   it("formats known failures without stack traces", async () => {
@@ -106,6 +125,65 @@ describe("command runner", () => {
     expect(result.exitCode).toBe(exitCodes.unexpectedInternalError);
     expect(result.stderr).toContain("Unexpected internal error.");
     expect(result.stderr).not.toContain("at ");
+  });
+
+  it("formats interrupted async commands without stack traces", async () => {
+    const context = createCommandContext({ sessionId: "session-1" });
+    const interrupt = createInterruptController();
+
+    interrupt.interrupt();
+
+    const result = await runCommand({
+      command: "status",
+      context,
+      interruptSignal: interrupt.signal,
+      handler: () =>
+        buildSuccessResult(context, {
+          command: "status",
+          summary: "Should not run"
+        })
+    });
+
+    expect(result.exitCode).toBe(exitCodes.interrupted);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("Command interrupted.");
+    expect(result.stderr).not.toContain("at ");
+  });
+
+  it("keeps interrupted output parseable in JSON mode", async () => {
+    const context = createCommandContext({
+      sessionId: "session-1",
+      flags: {
+        json: true
+      }
+    });
+    const interrupt = createInterruptController();
+
+    interrupt.interrupt("SIGTERM received.");
+
+    const result = await runCommand({
+      command: "status",
+      context,
+      interruptSignal: interrupt.signal,
+      handler: () =>
+        buildSuccessResult(context, {
+          command: "status",
+          summary: "Should not run"
+        })
+    });
+
+    expect(result.exitCode).toBe(exitCodes.interrupted);
+    expect(result.stderr).toBe("");
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      ok: false,
+      command: "status",
+      errors: [
+        {
+          code: "interrupted",
+          message: "SIGTERM received."
+        }
+      ]
+    });
   });
 
   it("supports synchronous handlers through the same lifecycle", () => {

@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 
 import type { Command } from "commander";
@@ -7,6 +6,12 @@ import { resolveContractPath, type ContractPathResult } from "./config/contract-
 import { loadRepositoryContract, type ContractLoadResult } from "./config/contract-loader.js";
 import { resolveLocalStatePaths, type LocalStatePaths } from "./config/local-state.js";
 import { discoverRepositoryRoot, type RepositoryRootResult } from "./config/repository-root.js";
+import { generateSessionId } from "./session.js";
+import {
+  createNoopTelemetryClient,
+  type TelemetryClient,
+  type TelemetryClientInput
+} from "./telemetry.js";
 
 export type OutputMode = "human" | "json";
 
@@ -29,12 +34,6 @@ export type CommandPrinter = {
   readonly write: (message: string) => void;
   readonly warn: (message: string) => void;
   readonly error: (message: string) => void;
-};
-
-export type TelemetryClient = {
-  readonly enabled: boolean;
-  readonly capture: (event: string, properties?: Record<string, unknown>) => void;
-  readonly flush?: () => void | Promise<void>;
 };
 
 export type CommandContext = {
@@ -61,10 +60,11 @@ export type CommandContextInput = {
   readonly sessionId?: string;
   readonly agent?: AgentCommandMetadata;
   readonly printer?: CommandPrinter;
-  readonly telemetry?: TelemetryClient;
+  readonly telemetry?: TelemetryClientInput;
 };
 
 export function createCommandContext(input: CommandContextInput = {}): CommandContext {
+  const env = input.env ?? process.env;
   const currentWorkingDirectory = resolve(input.currentWorkingDirectory ?? process.cwd());
   const flags = normalizeGlobalFlags(input.flags);
   const startDirectory = resolve(input.startDirectory ?? flags.cwd ?? currentWorkingDirectory);
@@ -79,7 +79,7 @@ export function createCommandContext(input: CommandContextInput = {}): CommandCo
     globalFlags: flags,
     outputMode: flags.json ? "json" : "human",
     printer: input.printer ?? noopPrinter,
-    env: input.env ?? process.env,
+    env,
     repositoryRoot: () => {
       repositoryRootResult ??= discoverRepositoryRoot(startDirectory);
       return repositoryRootResult;
@@ -114,15 +114,19 @@ export function createCommandContext(input: CommandContextInput = {}): CommandCo
       localStatePaths ??= (repositoryRootResult ?? discoverRepositoryRoot(startDirectory)).then(
         (repositoryRoot) =>
           resolveLocalStatePaths({
-            env: input.env,
+            env,
             repositoryRoot
           })
       );
       return localStatePaths;
     },
-    sessionId: input.sessionId ?? `local-${randomUUID()}`,
+    sessionId: input.sessionId ?? generateSessionId(),
     agent: input.agent ?? {},
-    telemetry: input.telemetry ?? noopTelemetry
+    telemetry: createNoopTelemetryClient(
+      input.telemetry ?? {
+        enabled: isTelemetryEnabled(env)
+      }
+    )
   };
 }
 
@@ -188,8 +192,6 @@ const noopPrinter: CommandPrinter = {
   error: () => {}
 };
 
-const noopTelemetry: TelemetryClient = {
-  enabled: false,
-  capture: () => {},
-  flush: () => {}
-};
+function isTelemetryEnabled(env: NodeJS.ProcessEnv): boolean {
+  return ["1", "true", "yes", "on"].includes((env.BOARD_TELEMETRY ?? "").toLowerCase());
+}

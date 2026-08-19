@@ -1,5 +1,5 @@
 {
-  "name": "@repo-knowledge/scanner",
+  "name": "@repo-knowledge/scanner-core",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -19,7 +19,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@repo-knowledge/scanner-core": "workspace:*",
-    "@repo-knowledge/types": "workspace:*"
+    "@repo-knowledge/types": "workspace:*",
+    "yaml": "^2.9.0"
   }
 }

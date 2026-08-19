@@ -1,4 +1,36 @@
-import { typesPackage, type ScannerFactPlaceholder } from "@repo-knowledge/types";
+import { typesPackage } from "@repo-knowledge/types";
+
+export {
+  confidenceRank,
+  createScannerEvidence,
+  isScannerConfidence,
+  normalizeRepositoryRelativePath,
+  scannerConfidenceLevels,
+  scannerEvidenceKinds,
+  toContractEvidenceReference
+} from "./evidence.js";
+export type {
+  CreateScannerEvidenceInput,
+  ScannerConfidence,
+  ScannerEvidence,
+  ScannerEvidenceKind
+} from "./evidence.js";
+export {
+  createScannerFact,
+  getScannerFactDefinition,
+  isScannerFactKind,
+  scannerFactDefinitions,
+  scannerFactKinds
+} from "./facts.js";
+export type {
+  CreateScannerFactInput,
+  FutureMaintenanceAgent,
+  ScannerFact,
+  ScannerFactDefinition,
+  ScannerFactKind,
+  ScannerFactSource
+} from "./facts.js";
+import type { ScannerFact } from "./facts.js";
 
 export const scannerPackage = {
   name: "@repo-knowledge/scanner",
@@ -13,7 +45,7 @@ export type ScannerResult = {
   readonly schemaVersion: "phase-0-placeholder";
   readonly scannerVersion: "0.0.0";
   readonly repositoryRoot: string;
-  readonly facts: readonly ScannerFactPlaceholder[];
+  readonly facts: readonly ScannerFact[];
   readonly warnings: readonly string[];
 };
 

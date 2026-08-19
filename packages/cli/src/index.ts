@@ -26,8 +26,7 @@ export type {
   CommandContextInput,
   CommandPrinter,
   GlobalCliFlags,
-  OutputMode,
-  TelemetryClient
+  OutputMode
 } from "./command-context.js";
 export { defaultContractRelativePath, resolveContractPath } from "./config/contract-path.js";
 export type {
@@ -75,6 +74,18 @@ export {
 } from "./errors/board-error.js";
 export type { BoardErrorCode, BoardErrorInput } from "./errors/board-error.js";
 export {
+  createInterruptController,
+  installInterruptHandlers,
+  interruptedPromise,
+  throwIfInterrupted
+} from "./interrupt.js";
+export type {
+  InstalledInterruptHandlers,
+  InterruptController,
+  InterruptSignalName,
+  ProcessSignalTarget
+} from "./interrupt.js";
+export {
   buildCommandResult,
   buildFailureResult,
   buildSuccessResult,
@@ -95,6 +106,23 @@ export { printJsonResult } from "./output/json.js";
 export { printCommandResult } from "./output/printer.js";
 export { runCommand, runCommandSync } from "./runner.js";
 export type { CommandHandler, RunCommandInput, SyncCommandHandler } from "./runner.js";
+export {
+  assertBoardIdentifier,
+  createBoardIdentifier,
+  generateAgentRunId,
+  generateSessionId,
+  generateToolCallId,
+  isBoardIdentifier,
+  resolveSessionPath
+} from "./session.js";
+export type { BoardIdentifierKind, SessionPathInput, SessionPathKind } from "./session.js";
+export { createNoopTelemetryClient, sanitizeTelemetryProperties } from "./telemetry.js";
+export type {
+  CommandTelemetryProperties,
+  TelemetryClient,
+  TelemetryClientInput,
+  TelemetryProperties
+} from "./telemetry.js";
 
 import { runBoardCliAsync } from "./app.js";
 

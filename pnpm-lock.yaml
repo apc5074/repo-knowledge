@@ -116,9 +116,21 @@ importers:
 
   packages/scanner:
     dependencies:
+      '@repo-knowledge/scanner-core':
+        specifier: workspace:*
+        version: link:../scanner-core
       '@repo-knowledge/types':
         specifier: workspace:*
         version: link:../types
+
+  packages/scanner-core:
+    dependencies:
+      '@repo-knowledge/types':
+        specifier: workspace:*
+        version: link:../types
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
 
   packages/types: {}
 

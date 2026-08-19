@@ -15,6 +15,21 @@ board contract validate .board/repository.yaml
 
 The package metadata maps `board` to `./dist/index.js`. The source entrypoint is `src/index.ts`, which contains the shebang and delegates to the testable app logic in `src/app.ts`.
 
+Local development commands:
+
+```bash
+pnpm --filter @repo-knowledge/cli build
+node packages/cli/dist/index.js --help
+node packages/cli/dist/index.js --json status
+node packages/cli/dist/index.js contract validate .board/repository.yaml
+```
+
+From the package workspace, tests can exercise the CLI in process:
+
+```bash
+pnpm --filter @repo-knowledge/cli test
+```
+
 ## Command Framework
 
 The CLI uses `commander` for command registration, global flag parsing, help output, and testable in-process execution. `createBoardProgram()` builds the Commander app, while `runBoardCli()` and `runBoardCliAsync()` return explicit `{ exitCode, stdout, stderr }` results for tests, scripts, and future agent tool wrappers.
@@ -42,6 +57,10 @@ By default, config resolves to `config.json` inside the local data root. Set `BO
 
 Environment overrides are `BOARD_TELEMETRY`, `BOARD_OUTPUT`, `BOARD_API_URL`, and `BOARD_UPDATE_CHECKS`.
 
+## Session IDs
+
+Session helpers generate filename-safe IDs for local command sessions, future agent runs, and future tool calls. The current styles are `local-<uuid>`, `agent-run-<uuid>`, and `tool-call-<uuid>`. Session path helpers resolve future files such as `session.json`, `events.jsonl`, and `session.lock` under the local sessions root without creating process state.
+
 ## Local State
 
 Local state path resolution is deterministic and does not create directories unless `ensureLocalStateDirectories()` is called. The resolver supports user data, cache, logs, sessions, and repository-scoped state directories. Repository-specific state is keyed by a hash of the local repository root and is not a place for secrets.
@@ -58,16 +77,16 @@ Default locations:
 
 These flags are reserved as the stable Phase 2 interface. Some are documented before full framework wiring so later command handlers can rely on the public contract.
 
-| Flag              | Scope  | Phase 2 behavior                                                   |
-| ----------------- | ------ | ------------------------------------------------------------------ |
-| `--help`, `-h`    | Global | Prints help.                                                       |
-| `--version`, `-V` | Global | Prints the CLI package version without repository context.         |
-| `--json`          | Global | Supported by `board contract validate`; reserved for all commands. |
-| `--quiet`         | Global | Reserved for nonessential human-output suppression.                |
-| `--verbose`       | Global | Reserved for safe debug details.                                   |
-| `--cwd <path>`    | Global | Reserved for repository discovery start directory.                 |
-| `--config <path>` | Global | Supported by contract discovery as an explicit contract path.      |
-| `--no-color`      | Global | Reserved for disabling colorized output.                           |
+| Flag              | Scope  | Phase 2 behavior                                              |
+| ----------------- | ------ | ------------------------------------------------------------- |
+| `--help`, `-h`    | Global | Prints help.                                                  |
+| `--version`, `-V` | Global | Prints the CLI package version without repository context.    |
+| `--json`          | Global | Emits the common JSON envelope for runner-backed commands.    |
+| `--quiet`         | Global | Reserved for nonessential human-output suppression.           |
+| `--verbose`       | Global | Reserved for safe debug details.                              |
+| `--cwd <path>`    | Global | Reserved for repository discovery start directory.            |
+| `--config <path>` | Global | Supported by contract discovery as an explicit contract path. |
+| `--no-color`      | Global | Reserved for disabling colorized output.                      |
 
 Command-specific flags should not change the meaning of these global flags.
 
@@ -85,9 +104,17 @@ Human output is rendered from the same result envelope. It stays concise by defa
 
 Operational failures use `BoardError`, which carries a stable error code, documented exit code, message, safe details, safe metadata, and next steps. Known errors are formatted without stack traces by default. Unexpected errors are converted to the internal-error shape and only include stack details when `--verbose` is enabled.
 
-Registered command handlers run through the shared command runner. The runner builds on command context, records duration, normalizes successful results, catches known and unexpected errors, selects the output printer, returns the process exit code, records telemetry events, and flushes telemetry when a client provides a flush hook.
+Registered command handlers run through the shared command runner. The runner builds on command context, records duration, normalizes successful results, catches known and unexpected errors, selects the output printer, returns the process exit code, records no-op telemetry lifecycle events, and flushes telemetry through the configured client.
+
+Telemetry defaults to disabled and requires no network access. The interface includes command start/success/failure hooks plus no-op future hooks for agent runs, tool calls, approval requests, proposals, and pull request events. `BOARD_TELEMETRY=true` marks telemetry enabled for future clients, but Phase 2 still sends nothing externally and filters secret-looking property keys.
+
+Interrupt handling maps controlled cancellation to the `interrupted` error code and exit code `8`. Runner tests can pass an abort signal directly; future entrypoint/runtime work can attach the provided `SIGINT`/`SIGTERM` handlers and cleanup hooks without changing command result output.
 
 MVP placeholder handlers live in command modules and are registered through the same runner as real commands. They support human and JSON output, have command-specific help, and state clearly that implementation belongs to a later phase. `board status` is a real command that reports repository discovery, contract validity, local state paths, CLI version, and a deferred runtime-services note. `board contract validate` is a real command module wired into the command tree; it uses Phase 1 contract parsing, supports explicit path and `--config`, and returns structured validation details in JSON failure output.
+
+## Testing Commands
+
+Command tests should prefer the in-process harness in `test/harness.ts`. It can run CLI commands with fake cwd/env, parse JSON output, create temporary repository and contract fixtures, and create deterministic command contexts for handler-level tests. Subprocess tests are reserved for the focused E2E smoke coverage in a later ticket.
 
 ## Exit Codes
 
@@ -123,7 +150,7 @@ Early placeholder code may still return `1` for failures until the full Phase 2 
 | `board stop`              | Runner-backed placeholder. Later stops local Board-managed processes.             |
 | `board contract validate` | Implemented thin shell using the repository contract parser.                      |
 
-Canonical contract validation command:
+Common Phase 2 commands:
 
 ```bash
 board --help
@@ -136,6 +163,57 @@ board contract validate .board/repository.yaml --json
 ```
 
 When no path is supplied, validation defaults to `.board/repository.yaml`.
+
+Example human output:
+
+```text
+Repository found; contract valid.
+```
+
+Example JSON output:
+
+```json
+{
+  "ok": true,
+  "status": "success",
+  "command": "status",
+  "summary": "Repository found; contract valid.",
+  "data": {
+    "repository": {
+      "found": true,
+      "root": "/path/to/repo"
+    },
+    "contract": {
+      "found": true,
+      "valid": true,
+      "path": "/path/to/repo/.board/repository.yaml"
+    },
+    "runtime": {
+      "managed_services_running": false
+    }
+  }
+}
+```
+
+The actual JSON result also includes stable envelope fields such as `warnings`, `errors`, `next_steps`, `session_id`, `review_items`, and `candidate_findings`.
+
+## Troubleshooting
+
+If `board status` reports `Repository not found.`, run it from inside a Git repository or pass an explicit start directory:
+
+```bash
+board --cwd /path/to/repo status
+```
+
+If `board status` or `board contract validate` reports a missing contract, create `.board/repository.yaml`. Until `board init` is implemented in a later phase, the contract must be created manually or by tests/fixtures.
+
+If contract validation reports `repository.type` or `repository.primary_language` issues, fix the contract fields and rerun:
+
+```bash
+board contract validate .board/repository.yaml
+```
+
+Phase 2 does not start local services, scan repositories, select tests, generate repo skills, expose MCP tools, or run maintenance agents. Those behaviors are deliberately deferred to later phases; Phase 2 only locks down the CLI shell, result shape, and early repository/contract checks.
 
 ## Reserved Future Groups
 

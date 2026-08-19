@@ -1,7 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -15,6 +13,14 @@ import {
   runBoardCli,
   runBoardCliAsync
 } from "../src/index.js";
+import {
+  createRepositoryFixture,
+  createTempDirectory,
+  parseJsonResult,
+  runCli,
+  validRepositoryContractYaml,
+  writeContract
+} from "./harness.js";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -149,41 +155,29 @@ describe("@repo-knowledge/cli", () => {
   });
 
   it("validates a contract file with human-readable output", async () => {
-    const directory = await createContractFixture(
-      "valid-human",
-      `
-version: 1
-repository:
-  name: orders-service
-  type: service
-  primary_language: typescript
-`
-    );
+    const fixture = await createRepositoryFixture({
+      name: "valid-human",
+      contract: "valid",
+      git: false
+    });
 
-    await expect(
-      runBoardCliAsync(["contract", "validate", join(directory, ".board/repository.yaml")])
-    ).resolves.toEqual({
+    await expect(runCli(["contract", "validate", fixture.contractPath])).resolves.toEqual({
       exitCode: 0,
-      stdout: `Valid repository contract: ${join(directory, ".board/repository.yaml")}`,
+      stdout: `Valid repository contract: ${fixture.contractPath}`,
       stderr: ""
     });
   });
 
   it("uses .board/repository.yaml as the default validation path", async () => {
-    const directory = await createContractFixture(
-      "valid-default",
-      `
-version: 1
-repository:
-  name: orders-service
-  type: service
-  primary_language: typescript
-`
-    );
+    const fixture = await createRepositoryFixture({
+      name: "valid-default",
+      contract: "valid",
+      git: false
+    });
     const previousWorkingDirectory = process.cwd();
 
     try {
-      process.chdir(directory);
+      process.chdir(fixture.root);
 
       const result = await runBoardCliAsync(["contract", "validate"]);
 
@@ -196,22 +190,13 @@ repository:
   });
 
   it("returns path-aware validation errors for invalid contracts", async () => {
-    const directory = await createContractFixture(
-      "invalid-human",
-      `
-version: 1
-repository:
-  name: orders-service
-  type: daemon
-  primary_language: ruby
-`
-    );
+    const fixture = await createRepositoryFixture({
+      name: "invalid-human",
+      contract: "invalid",
+      git: false
+    });
 
-    const result = await runBoardCliAsync([
-      "contract",
-      "validate",
-      join(directory, ".board/repository.yaml")
-    ]);
+    const result = await runCli(["contract", "validate", fixture.contractPath]);
 
     expect(result.exitCode).toBe(5);
     expect(result.stdout).toBe("");
@@ -221,73 +206,53 @@ repository:
   });
 
   it("supports JSON validation output", async () => {
-    const directory = await createContractFixture(
-      "valid-json",
-      `
-version: 1
-repository:
-  name: orders-service
-  type: service
-  primary_language: typescript
-`
-    );
+    const fixture = await createRepositoryFixture({
+      name: "valid-json",
+      contract: "valid",
+      git: false
+    });
 
-    const result = await runBoardCliAsync([
-      "contract",
-      "validate",
-      join(directory, ".board/repository.yaml"),
-      "--json"
-    ]);
+    const result = await runCli(["contract", "validate", fixture.contractPath], { json: true });
 
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toBe("");
-    expect(JSON.parse(result.stdout)).toMatchObject({
+    expect(parseJsonResult(result)).toMatchObject({
       ok: true,
       status: "success",
       command: "contract validate",
       data: {
-        path: join(directory, ".board/repository.yaml"),
+        path: fixture.contractPath,
         repository: "orders-service"
       },
       repository: {
         name: "orders-service"
       },
       contract: {
-        path: join(directory, ".board/repository.yaml"),
+        path: fixture.contractPath,
         valid: true
       }
     });
   });
 
   it("includes validation details for invalid JSON contract validation output", async () => {
-    const directory = await createContractFixture(
-      "invalid-json",
-      `
-version: 1
-repository:
-  name: orders-service
-  type: daemon
-  primary_language: ruby
-`
-    );
+    const fixture = await createRepositoryFixture({
+      name: "invalid-json",
+      contract: "invalid",
+      git: false
+    });
 
-    const result = await runBoardCliAsync([
-      "contract",
-      "validate",
-      join(directory, ".board/repository.yaml"),
-      "--json"
-    ]);
+    const result = await runCli(["contract", "validate", fixture.contractPath], { json: true });
 
     expect(result.exitCode).toBe(5);
     expect(result.stderr).toBe("");
-    expect(JSON.parse(result.stdout)).toMatchObject({
+    expect(parseJsonResult(result)).toMatchObject({
       ok: false,
       status: "failure",
       command: "contract validate",
       errors: [
         {
           code: "contract-invalid",
-          path: join(directory, ".board/repository.yaml"),
+          path: fixture.contractPath,
           details: [
             {
               path: "repository.type"
@@ -307,7 +272,7 @@ repository:
         }
       ],
       contract: {
-        path: join(directory, ".board/repository.yaml"),
+        path: fixture.contractPath,
         valid: false
       },
       next_steps: ["Fix the contract issues above, then run board contract validate again."]
@@ -315,46 +280,43 @@ repository:
   });
 
   it("uses --config as the contract validation path when no argument is provided", async () => {
-    const directory = await createContractFixture(
-      "valid-config",
-      `
-version: 1
-repository:
-  name: payments-service
-  type: service
-  primary_language: typescript
-`
-    );
+    const fixture = await createRepositoryFixture({
+      name: "valid-config",
+      git: false
+    });
 
-    const result = await runBoardCliAsync([
+    await writeContract(fixture.root, validRepositoryContractYaml("payments-service"));
+
+    const result = await runCli([
       "--config",
-      join(directory, ".board/repository.yaml"),
+      fixture.contractPath,
       "contract",
       "validate",
       "--json"
     ]);
 
     expect(result.exitCode).toBe(0);
-    expect(JSON.parse(result.stdout)).toMatchObject({
+    expect(parseJsonResult(result)).toMatchObject({
       ok: true,
       command: "contract validate",
       data: {
-        path: join(directory, ".board/repository.yaml"),
+        path: fixture.contractPath,
         repository: "payments-service"
       }
     });
   });
 
   it("reports missing contracts with exit code 4 and a next step", async () => {
-    const directory = join(tmpdir(), `board-cli-missing-contract-${randomUUID()}`);
+    const fixture = await createRepositoryFixture({
+      name: "missing-contract",
+      contract: "missing"
+    });
 
-    await mkdir(join(directory, ".git"), { recursive: true });
-
-    const result = await runBoardCliAsync(["--cwd", directory, "contract", "validate", "--json"]);
+    const result = await runCli(["contract", "validate"], { cwd: fixture.root, json: true });
 
     expect(result.exitCode).toBe(4);
     expect(result.stderr).toBe("");
-    expect(JSON.parse(result.stdout)).toMatchObject({
+    expect(parseJsonResult(result)).toMatchObject({
       ok: false,
       status: "failure",
       command: "contract validate",
@@ -368,22 +330,16 @@ repository:
   });
 
   it("reports valid repository status without claiming runtime services are running", async () => {
-    const directory = await createContractFixture(
-      "status-valid",
-      `
-version: 1
-repository:
-  name: orders-service
-  type: service
-  primary_language: typescript
-`
-    );
+    const fixture = await createRepositoryFixture({
+      name: "status-valid",
+      contract: "valid"
+    });
 
-    const result = await runBoardCliAsync(["--json", "--cwd", directory, "status"]);
+    const result = await runCli(["status"], { cwd: fixture.root, json: true });
 
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toBe("");
-    expect(JSON.parse(result.stdout)).toMatchObject({
+    expect(parseJsonResult(result)).toMatchObject({
       ok: true,
       status: "success",
       command: "status",
@@ -391,7 +347,7 @@ repository:
       data: {
         repository: {
           found: true,
-          root: directory
+          root: fixture.root
         },
         contract: {
           found: true,
@@ -406,7 +362,7 @@ repository:
         }
       },
       repository: {
-        root: directory,
+        root: fixture.root,
         name: "orders-service"
       },
       contract: {
@@ -417,22 +373,23 @@ repository:
   });
 
   it("reports missing contracts through board status", async () => {
-    const directory = join(tmpdir(), `board-cli-status-missing-${randomUUID()}`);
+    const fixture = await createRepositoryFixture({
+      name: "status-missing",
+      contract: "missing"
+    });
 
-    await mkdir(join(directory, ".git"), { recursive: true });
-
-    const result = await runBoardCliAsync(["--json", "--cwd", directory, "status"]);
+    const result = await runCli(["status"], { cwd: fixture.root, json: true });
 
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toBe("");
-    expect(JSON.parse(result.stdout)).toMatchObject({
+    expect(parseJsonResult(result)).toMatchObject({
       ok: true,
       command: "status",
       summary: "Repository found; contract missing.",
       data: {
         repository: {
           found: true,
-          root: directory
+          root: fixture.root
         },
         contract: {
           found: false,
@@ -445,19 +402,13 @@ repository:
   });
 
   it("reports invalid contracts through board status", async () => {
-    const directory = await createContractFixture(
-      "status-invalid",
-      `
-version: 1
-repository:
-  name: orders-service
-  type: daemon
-  primary_language: ruby
-`
-    );
+    const fixture = await createRepositoryFixture({
+      name: "status-invalid",
+      contract: "invalid"
+    });
 
-    const result = await runBoardCliAsync(["--json", "--cwd", directory, "status"]);
-    const payload = JSON.parse(result.stdout) as {
+    const result = await runCli(["status"], { cwd: fixture.root, json: true });
+    const payload = parseJsonResult(result) as {
       readonly warnings: readonly string[];
       readonly data: {
         readonly contract: {
@@ -493,15 +444,13 @@ repository:
   });
 
   it("reports no repository through board status", async () => {
-    const directory = join(tmpdir(), `board-cli-status-no-repo-${randomUUID()}`);
+    const directory = await createTempDirectory("status-no-repo");
 
-    await mkdir(directory, { recursive: true });
-
-    const result = await runBoardCliAsync(["--json", "--cwd", directory, "status"]);
+    const result = await runCli(["status"], { cwd: directory, json: true });
 
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toBe("");
-    expect(JSON.parse(result.stdout)).toMatchObject({
+    expect(parseJsonResult(result)).toMatchObject({
       ok: true,
       command: "status",
       summary: "Repository not found.",
@@ -518,12 +467,3 @@ repository:
     });
   });
 });
-
-async function createContractFixture(name: string, yaml: string): Promise<string> {
-  const directory = join(tmpdir(), `board-cli-${name}-${randomUUID()}`);
-
-  await mkdir(join(directory, ".board"), { recursive: true });
-  await writeFile(join(directory, ".board/repository.yaml"), yaml, "utf8");
-
-  return directory;
-}

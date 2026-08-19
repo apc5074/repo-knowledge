@@ -8,7 +8,8 @@ import { describe, expect, it } from "vitest";
 import {
   createBoardProgram,
   createCommandContext,
-  createCommandContextFromCommand
+  createCommandContextFromCommand,
+  isBoardIdentifier
 } from "../src/index.js";
 
 describe("command context", () => {
@@ -61,6 +62,17 @@ describe("command context", () => {
     const context = createCommandContext();
 
     expect(context.sessionId).toMatch(/^local-/);
+    expect(isBoardIdentifier(context.sessionId)).toBe(true);
+  });
+
+  it("can enable the no-op telemetry client from the environment", () => {
+    const context = createCommandContext({
+      env: {
+        BOARD_TELEMETRY: "true"
+      }
+    });
+
+    expect(context.telemetry.enabled).toBe(true);
   });
 
   it("uses --cwd as the repository discovery start directory", async () => {

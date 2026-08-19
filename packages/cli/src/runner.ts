@@ -1,6 +1,7 @@
 import type { CommandContext } from "./command-context.js";
 import { boardErrorToResult, isBoardError, unexpectedErrorToResult } from "./errors/board-error.js";
 import { exitCodes } from "./errors/exit-codes.js";
+import { interruptedPromise, throwIfInterrupted } from "./interrupt.js";
 import { printCommandResult } from "./output/printer.js";
 import { buildCommandResult, type CommandResult } from "./output/result.js";
 
@@ -20,6 +21,7 @@ export type RunCommandInput<TData = unknown> = {
   readonly command: string;
   readonly context: CommandContext;
   readonly handler: CommandHandler<TData>;
+  readonly interruptSignal?: AbortSignal;
 };
 
 export async function runCommand<TData = unknown>(
@@ -27,16 +29,29 @@ export async function runCommand<TData = unknown>(
 ): Promise<CliResult> {
   const start = Date.now();
 
+  input.context.telemetry.commandStarted({
+    command: input.command,
+    session_id: input.context.sessionId
+  });
+
   try {
-    const result = withDuration(await input.handler(input.context), start);
+    throwIfInterrupted(input.interruptSignal);
+
+    const handlerResult = input.handler(input.context);
+    const interrupt = interruptedPromise(input.interruptSignal);
+    const result = withDuration(
+      await (interrupt === undefined ? handlerResult : Promise.race([handlerResult, interrupt])),
+      start
+    );
     const output = printCommandResult(input.context, result);
 
-    input.context.telemetry.capture("command.completed", {
+    input.context.telemetry.commandSucceeded({
       command: input.command,
+      session_id: input.context.sessionId,
       ok: result.ok,
       duration_ms: result.duration_ms
     });
-    await input.context.telemetry.flush?.();
+    await input.context.telemetry.flush();
 
     return {
       exitCode: result.ok ? exitCodes.success : exitCodes.generalFailure,
@@ -49,13 +64,14 @@ export async function runCommand<TData = unknown>(
       : withDuration(unexpectedErrorToResult(input.context, input.command, error), start);
     const output = printCommandResult(input.context, result);
 
-    input.context.telemetry.capture("command.failed", {
+    input.context.telemetry.commandFailed({
       command: input.command,
+      session_id: input.context.sessionId,
       ok: false,
       duration_ms: result.duration_ms,
       error_code: result.errors[0]?.code
     });
-    await input.context.telemetry.flush?.();
+    await input.context.telemetry.flush();
 
     return {
       exitCode: isBoardError(error) ? error.exitCode : exitCodes.unexpectedInternalError,
@@ -72,16 +88,24 @@ export function runCommandSync<TData = unknown>(
 ): CliResult {
   const start = Date.now();
 
+  input.context.telemetry.commandStarted({
+    command: input.command,
+    session_id: input.context.sessionId
+  });
+
   try {
+    throwIfInterrupted(input.interruptSignal);
+
     const result = withDuration(input.handler(input.context), start);
     const output = printCommandResult(input.context, result);
 
-    input.context.telemetry.capture("command.completed", {
+    input.context.telemetry.commandSucceeded({
       command: input.command,
+      session_id: input.context.sessionId,
       ok: result.ok,
       duration_ms: result.duration_ms
     });
-    void input.context.telemetry.flush?.();
+    void input.context.telemetry.flush();
 
     return {
       exitCode: result.ok ? exitCodes.success : exitCodes.generalFailure,
@@ -94,13 +118,14 @@ export function runCommandSync<TData = unknown>(
       : withDuration(unexpectedErrorToResult(input.context, input.command, error), start);
     const output = printCommandResult(input.context, result);
 
-    input.context.telemetry.capture("command.failed", {
+    input.context.telemetry.commandFailed({
       command: input.command,
+      session_id: input.context.sessionId,
       ok: false,
       duration_ms: result.duration_ms,
       error_code: result.errors[0]?.code
     });
-    void input.context.telemetry.flush?.();
+    void input.context.telemetry.flush();
 
     return {
       exitCode: isBoardError(error) ? error.exitCode : exitCodes.unexpectedInternalError,
