@@ -23,6 +23,9 @@ describe("board CLI E2E smoke tests", () => {
     await execFileAsync("pnpm", ["--filter", "@repo-knowledge/repository-contract", "build"], {
       cwd: repositoryRoot
     });
+    await execFileAsync("pnpm", ["--filter", "@repo-knowledge/init-core", "build"], {
+      cwd: repositoryRoot
+    });
     await execFileAsync("pnpm", ["--filter", "@repo-knowledge/cli", "build"], {
       cwd: repositoryRoot
     });

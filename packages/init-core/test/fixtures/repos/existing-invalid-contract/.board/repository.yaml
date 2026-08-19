@@ -1,0 +1,5 @@
+version: 1
+repository:
+  name: existing-invalid-contract
+  type: daemon
+  primary_language: ruby

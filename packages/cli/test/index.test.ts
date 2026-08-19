@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -115,7 +115,7 @@ describe("@repo-knowledge/cli", () => {
 
   it("returns placeholder output for commands still deferred past Phase 2", () => {
     for (const command of boardCommands.filter(
-      (command) => command !== "status" && command !== "scan"
+      (command) => command !== "init" && command !== "status" && command !== "scan"
     )) {
       expect(runBoardCli([command])).toEqual({
         exitCode: 0,
@@ -126,16 +126,143 @@ describe("@repo-knowledge/cli", () => {
   });
 
   it("returns machine-readable placeholder output for MVP commands", () => {
-    const result = runBoardCli(["--json", "init"]);
+    const result = runBoardCli(["--json", "start"]);
 
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toBe("");
     expect(JSON.parse(result.stdout)).toMatchObject({
       ok: true,
       status: "success",
-      command: "init",
-      summary: "board init is a Phase 2 placeholder. Implementation belongs to a later phase."
+      command: "start",
+      summary: "board start is a Phase 2 placeholder. Implementation belongs to a later phase."
     });
+  });
+
+  it("previews board init output without writing files", async () => {
+    const root = await createPackageRepository("init-dry-run");
+    const result = await runCli(["init", "--dry-run", "--include-untracked"], { cwd: root });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain("board init proposal");
+    expect(result.stdout).toContain("Proposed files:");
+    expect(result.stdout).toContain("Diff .board/repository.yaml");
+    await expect(stat(join(root, ".board/repository.yaml"))).rejects.toThrow();
+  });
+
+  it("returns structured board init JSON output", async () => {
+    const root = await createPackageRepository("init-json");
+    const result = await runCli(["init", "--json", "--include-untracked"], { cwd: root });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toBe("");
+
+    const parsed = parseJsonResult<{
+      readonly init: {
+        readonly proposalId: string;
+      };
+      readonly review: {
+        readonly approvalRequiredItems: readonly unknown[];
+      };
+    }>(result);
+
+    expect(parsed).toMatchObject({
+      ok: true,
+      status: expect.stringMatching(/success|warning/),
+      command: "init",
+      approval_required: true,
+      data: {
+        init: {
+          proposalId: expect.stringMatching(/^proposal-local-/)
+        },
+        review: {
+          proposedFiles: expect.arrayContaining([
+            expect.objectContaining({
+              path: ".board/repository.yaml"
+            })
+          ])
+        }
+      }
+    });
+    expect(parsed.data?.review.approvalRequiredItems.length).toBeGreaterThan(0);
+  });
+
+  it("writes board init artifacts when explicitly requested", async () => {
+    const root = await createPackageRepository("init-write");
+    const result = await runCli(["init", "--write", "--include-untracked"], { cwd: root });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain("board init applied");
+    await expect(readFile(join(root, ".board/repository.yaml"), "utf8")).resolves.toContain(
+      "repository:"
+    );
+  });
+
+  it("reports invalid existing contracts without overwriting them", async () => {
+    const root = await createInvalidContractRepository("init-invalid-human");
+    const original = await readFile(join(root, ".board/repository.yaml"), "utf8");
+    const result = await runCli(["init", "--write", "--include-untracked"], { cwd: root });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain("Existing repository contract is invalid");
+    expect(result.stdout).toContain("skip .board/repository.yaml");
+    expect(result.stdout).toContain("create .board/repository.generated.yaml");
+    expect(result.stdout).toContain("Next: Repair .board/repository.yaml");
+    await expect(readFile(join(root, ".board/repository.yaml"), "utf8")).resolves.toBe(original);
+    await expect(
+      readFile(join(root, ".board/repository.generated.yaml"), "utf8")
+    ).resolves.toContain("repository:");
+  });
+
+  it("returns path-aware JSON details for invalid existing contracts", async () => {
+    const root = await createInvalidContractRepository("init-invalid-json");
+    const result = await runCli(["init", "--json", "--include-untracked"], { cwd: root });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toBe("");
+
+    const parsed = parseJsonResult<{
+      readonly review: {
+        readonly approvalRequiredItems: readonly {
+          readonly id: string;
+          readonly summary: string;
+          readonly evidence: readonly string[];
+        }[];
+        readonly proposedFiles: readonly {
+          readonly path: string;
+          readonly action: string;
+        }[];
+      };
+    }>(result);
+    const invalidItem = parsed.data?.review.approvalRequiredItems.find(
+      (item) => item.id === "existing-contract-invalid"
+    );
+
+    expect(parsed).toMatchObject({
+      ok: true,
+      status: "warning",
+      command: "init",
+      data: {
+        review: {
+          proposedFiles: expect.arrayContaining([
+            expect.objectContaining({
+              path: ".board/repository.yaml",
+              action: "skip"
+            }),
+            expect.objectContaining({
+              path: ".board/repository.generated.yaml",
+              action: "create"
+            })
+          ])
+        }
+      }
+    });
+    expect(invalidItem?.summary).toContain("repository.type:");
+    expect(invalidItem?.evidence).toEqual(
+      expect.arrayContaining([expect.stringContaining("repository.primary_language:")])
+    );
   });
 
   it("scans a repository fixture with human-readable output", async () => {
@@ -527,3 +654,45 @@ describe("@repo-knowledge/cli", () => {
     });
   });
 });
+
+async function createPackageRepository(name: string): Promise<string> {
+  const root = await createTempDirectory(name);
+
+  await writeFile(
+    join(root, "package.json"),
+    JSON.stringify(
+      {
+        name,
+        scripts: {
+          test: "vitest run"
+        },
+        dependencies: {
+          express: "^5.0.0"
+        }
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
+
+  return root;
+}
+
+async function createInvalidContractRepository(name: string): Promise<string> {
+  const root = await createPackageRepository(name);
+
+  await writeContract(
+    root,
+    [
+      "version: 1",
+      "repository:",
+      `  name: ${name}`,
+      "  type: daemon",
+      "  primary_language: ruby",
+      ""
+    ].join("\n")
+  );
+
+  return root;
+}

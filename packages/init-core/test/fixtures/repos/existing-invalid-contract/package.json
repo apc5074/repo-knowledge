@@ -1,0 +1,6 @@
+{
+  "name": "existing-invalid-contract",
+  "scripts": {
+    "test": "vitest run"
+  }
+}

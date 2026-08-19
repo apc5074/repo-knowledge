@@ -80,6 +80,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@repo-knowledge/init-core':
+        specifier: workspace:*
+        version: link:../init-core
       '@repo-knowledge/repository-contract':
         specifier: workspace:*
         version: link:../repository-contract
@@ -92,6 +95,18 @@ importers:
       commander:
         specifier: ^15.0.0
         version: 15.0.0
+
+  packages/init-core:
+    dependencies:
+      '@repo-knowledge/repository-contract':
+        specifier: workspace:*
+        version: link:../repository-contract
+      '@repo-knowledge/scanner-core':
+        specifier: workspace:*
+        version: link:../scanner-core
+      '@repo-knowledge/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/mcp-server:
     dependencies:

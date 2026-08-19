@@ -1,0 +1,6 @@
+{
+  "name": "non-git-repository",
+  "scripts": {
+    "test": "vitest run"
+  }
+}

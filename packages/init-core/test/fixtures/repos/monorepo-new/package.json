@@ -1,0 +1,12 @@
+{
+  "name": "monorepo-new",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "pnpm -r test",
+    "build": "pnpm -r build"
+  }
+}

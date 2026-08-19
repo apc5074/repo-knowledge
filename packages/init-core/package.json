@@ -1,11 +1,8 @@
 {
-  "name": "@repo-knowledge/cli",
+  "name": "@repo-knowledge/init-core",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "bin": {
-    "board": "./dist/index.js"
-  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -22,10 +19,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@repo-knowledge/init-core": "workspace:*",
     "@repo-knowledge/repository-contract": "workspace:*",
     "@repo-knowledge/scanner-core": "workspace:*",
-    "@repo-knowledge/types": "workspace:*",
-    "commander": "^15.0.0"
+    "@repo-knowledge/types": "workspace:*"
   }
 }

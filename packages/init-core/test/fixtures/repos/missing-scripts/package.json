@@ -1,0 +1,6 @@
+{
+  "name": "missing-scripts",
+  "dependencies": {
+    "express": "^5.0.0"
+  }
+}

@@ -23,6 +23,7 @@ pnpm --filter @repo-knowledge/cli build
 node packages/cli/dist/index.js --help
 node packages/cli/dist/index.js --json status
 node packages/cli/dist/index.js scan --json
+node packages/cli/dist/index.js init --dry-run
 node packages/cli/dist/index.js contract validate .board/repository.yaml
 ```
 
@@ -112,7 +113,7 @@ Telemetry defaults to disabled and requires no network access. The interface inc
 
 Interrupt handling maps controlled cancellation to the `interrupted` error code and exit code `8`. Runner tests can pass an abort signal directly; future entrypoint/runtime work can attach the provided `SIGINT`/`SIGTERM` handlers and cleanup hooks without changing command result output.
 
-MVP placeholder handlers live in command modules and are registered through the same runner as real commands. They support human and JSON output, have command-specific help, and state clearly that implementation belongs to a later phase. `board status` is a real command that reports repository discovery, contract validity, local state paths, CLI version, and a deferred runtime-services note. `board scan` is an experimental developer command that runs the deterministic scanner, prints a concise human summary by default, and includes the normalized scan result under `data.scan` for JSON output. `board contract validate` is a real command module wired into the command tree; it uses Phase 1 contract parsing, supports explicit path and `--config`, and returns structured validation details in JSON failure output.
+MVP placeholder handlers live in command modules and are registered through the same runner as real commands. They support human and JSON output, have command-specific help, and state clearly that implementation belongs to a later phase. `board init` is a real command that runs the deterministic initialization workflow, previews or writes `.board/repository.yaml`, and exposes proposal/review data for agents through JSON output. `board status` is a real command that reports repository discovery, contract validity, local state paths, CLI version, and a deferred runtime-services note. `board scan` is an experimental developer command that runs the deterministic scanner, prints a concise human summary by default, and includes the normalized scan result under `data.scan` for JSON output. `board contract validate` is a real command module wired into the command tree; it uses Phase 1 contract parsing, supports explicit path and `--config`, and returns structured validation details in JSON failure output.
 
 ## Testing Commands
 
@@ -142,7 +143,7 @@ Early placeholder code may still return `1` for failures until the full Phase 2 
 
 | Command                   | Phase 2 behavior                                                                  |
 | ------------------------- | --------------------------------------------------------------------------------- |
-| `board init`              | Runner-backed placeholder. Later initializes `.board/repository.yaml`.            |
+| `board init`              | Previews or writes the initial `.board/repository.yaml` proposal.                 |
 | `board start`             | Runner-backed placeholder. Later starts local repo services/apps.                 |
 | `board status`            | Reports repository discovery, contract state, local state paths, and CLI version. |
 | `board scan`              | Runs deterministic scanner and prints human or JSON scan output.                  |
@@ -161,6 +162,9 @@ board --version
 board --json --version
 board status
 board --json status
+board init --dry-run
+board init --write
+board init --json
 board scan
 board scan --json
 board contract validate .board/repository.yaml
@@ -210,7 +214,7 @@ If `board status` reports `Repository not found.`, run it from inside a Git repo
 board --cwd /path/to/repo status
 ```
 
-If `board status` or `board contract validate` reports a missing contract, create `.board/repository.yaml`. Until `board init` is implemented in a later phase, the contract must be created manually or by tests/fixtures.
+If `board status` or `board contract validate` reports a missing contract, run `board init --dry-run` to review a generated proposal, then `board init --write` to create `.board/repository.yaml`.
 
 If contract validation reports `repository.type` or `repository.primary_language` issues, fix the contract fields and rerun:
 

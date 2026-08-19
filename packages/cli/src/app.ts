@@ -6,6 +6,7 @@ import { typesPackage } from "@repo-knowledge/types";
 
 import { createCommandContext, createCommandContextFromCommand } from "./command-context.js";
 import { validateContractCommand } from "./commands/contract/validate.js";
+import { initCommand } from "./commands/init.js";
 import { buildPlaceholderCommandResult, mvpPlaceholderCommands } from "./commands/placeholders.js";
 import { scanCommand } from "./commands/scan.js";
 import { statusCommand } from "./commands/status.js";
@@ -89,7 +90,7 @@ export function createBoardProgram(options: BoardProgramOptions = {}): Command {
     .option("-V, --version", "output the CLI version");
 
   for (const command of mvpPlaceholderCommands) {
-    if (command === "status") {
+    if (command === "init" || command === "status") {
       continue;
     }
 
@@ -108,6 +109,51 @@ export function createBoardProgram(options: BoardProgramOptions = {}): Command {
         );
       });
   }
+
+  program
+    .command("init")
+    .description("Create a reviewable repository contract proposal")
+    .option("--dry-run", "preview proposed files without writing to disk")
+    .option("--write", "write the proposed artifacts to disk")
+    .option("--force", "allow writes when target files have local changes")
+    .option("--include-untracked", "include untracked files in the scan inventory")
+    .option("--skip-scripts", "skip script proposal generation")
+    .option("--contract <path>", "set the repository contract path")
+    .option("--json", "emit machine-readable JSON output")
+    .action(
+      async (commandOptions: {
+        readonly dryRun?: boolean;
+        readonly write?: boolean;
+        readonly force?: boolean;
+        readonly includeUntracked?: boolean;
+        readonly skipScripts?: boolean;
+        readonly contract?: string;
+        readonly json?: boolean;
+      }) => {
+        const globals = program.opts<{
+          readonly json?: boolean;
+          readonly quiet?: boolean;
+          readonly verbose?: boolean;
+          readonly cwd?: string;
+          readonly config?: string;
+          readonly color?: boolean;
+        }>();
+        const context = createCommandContext({
+          flags: {
+            ...globals,
+            json: Boolean(commandOptions.json ?? globals.json)
+          }
+        });
+
+        programOptions.onResult?.(
+          await runCommand({
+            command: "init",
+            context,
+            handler: () => initCommand(context, commandOptions)
+          })
+        );
+      }
+    );
 
   const status = program
     .command("status")

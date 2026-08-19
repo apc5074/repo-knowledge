@@ -1,0 +1,6 @@
+{
+  "name": "dirty-worktree",
+  "scripts": {
+    "test": "vitest run"
+  }
+}

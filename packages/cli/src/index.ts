@@ -17,6 +17,8 @@ export {
   resolveContractPathFromContext
 } from "./command-context.js";
 export { validateContractCommand } from "./commands/contract/validate.js";
+export { initCommand } from "./commands/init.js";
+export type { InitCommandData, InitCommandOptions } from "./commands/init.js";
 export { buildPlaceholderCommandResult, mvpPlaceholderCommands } from "./commands/placeholders.js";
 export type { MvpPlaceholderCommand } from "./commands/placeholders.js";
 export { scanCommand } from "./commands/scan.js";

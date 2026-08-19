@@ -1,0 +1,17 @@
+{
+  "name": "typescript-api-new",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "express": "^5.0.0",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.0"
+  }
+}

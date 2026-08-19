@@ -1,0 +1,6 @@
+version: 1
+repository:
+  name: existing-valid-contract
+  type: service
+  primary_language: typescript
+  purpose: Existing reviewed contract.
