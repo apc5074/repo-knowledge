@@ -84,9 +84,3 @@ pnpm test
 pnpm build
 pnpm verify
 ```
-
-## Why I Am Building It
-
-I like developer tools that make teams faster without making the codebase feel more chaotic. The best repos have a lot of quiet knowledge around them: setup tricks, testing habits, review expectations, old code paths, generated files, and patterns worth copying.
-
-Board is about making that knowledge available to both people and agents, with enough structure that it can be trusted and enough review flow that it does not become noise.
