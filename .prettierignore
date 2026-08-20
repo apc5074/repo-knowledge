@@ -9,4 +9,6 @@ coverage/
 .pytest_cache/
 .uv-python/
 packages/repository-contract/test/fixtures/invalid/invalid-yaml.yaml
+packages/scanner-core/test/fixtures/repos/invalid-config-repo/package.json
+packages/scanner-core/test/fixtures/repos/invalid-config-repo/.github/workflows/broken.yml
 pnpm-lock.yaml
