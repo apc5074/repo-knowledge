@@ -1,0 +1,36 @@
+version: 1
+repository:
+  name: api-worker
+  type: monorepo
+  primary_language: typescript
+applications:
+  api:
+    id: api
+    type: api
+    working_directory: apps/api
+    dev:
+      command: node
+      args:
+        - index.js
+    health_check:
+      command:
+        command: node
+        args:
+          - index.js
+          - --health
+  worker:
+    id: worker
+    type: worker
+    working_directory: apps/worker
+    depends_on:
+      - api
+    dev:
+      command: node
+      args:
+        - worker.js
+    health_check:
+      command:
+        command: node
+        args:
+          - worker.js
+          - --health

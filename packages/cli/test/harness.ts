@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { cp, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   createCommandContext,
@@ -24,6 +26,15 @@ export type RepositoryFixture = {
   readonly root: string;
   readonly contractPath: string;
 };
+
+export type RuntimeFixtureRepository =
+  | "api-worker"
+  | "compose-dependency"
+  | "failing-setup"
+  | "invalid-runtime-fields"
+  | "minimal-node-app"
+  | "missing-env"
+  | "python-health-app";
 
 export type CliHarnessRunOptions = {
   readonly cwd?: string;
@@ -60,6 +71,22 @@ export async function createRepositoryFixture(
   return {
     root,
     contractPath
+  };
+}
+
+export async function copyRuntimeFixtureRepository(
+  name: RuntimeFixtureRepository
+): Promise<RepositoryFixture> {
+  const root = await createTempDirectory(`runtime-${name}`);
+
+  await cp(runtimeFixtureRepositoryPath(name), root, {
+    recursive: true
+  });
+  await mkdir(join(root, ".git"), { recursive: true });
+
+  return {
+    root,
+    contractPath: join(root, ".board/repository.yaml")
   };
 }
 
@@ -114,6 +141,19 @@ repository:
   type: daemon
   primary_language: ruby
 `;
+}
+
+function runtimeFixtureRepositoryPath(name: RuntimeFixtureRepository): string {
+  return join(
+    dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "..",
+    "bootstrap-runtime",
+    "test",
+    "fixtures",
+    "repos",
+    name
+  );
 }
 
 async function withEnvironment<T>(

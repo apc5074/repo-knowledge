@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 
 import { boundUtf8Tail, redactRuntimeOutput } from "./command-redaction.js";
+import { defaultRuntimeBudget } from "./runtime-budget.js";
 import type { RuntimeStateStore } from "./state-store.js";
 import type {
   BootstrapPlan,
@@ -34,6 +35,7 @@ export type ManagedProcessStartResult = {
 
 export type ApplicationProcessRunInput = Omit<ManagedProcessStartInput, "step"> & {
   readonly plan: BootstrapPlan;
+  readonly maxProcesses?: number;
 };
 
 export type ApplicationProcessRunResult = {
@@ -46,15 +48,27 @@ export type ApplicationProcessRunResult = {
   readonly errors: readonly string[];
 };
 
-const defaultEarlyExitMs = 500;
-const defaultMaxLogBytes = 8_192;
+const defaultEarlyExitMs = defaultRuntimeBudget.processReadyProbeMs;
+const defaultMaxLogBytes = defaultRuntimeBudget.outputExcerptBytes;
 
 export async function startApplicationProcesses(
   input: ApplicationProcessRunInput
 ): Promise<ApplicationProcessRunResult> {
   const starts: ManagedProcessStartResult[] = [];
+  const applicationSteps = input.plan.steps.filter((candidate) => candidate.kind === "application");
+  const maxProcesses = input.maxProcesses ?? applicationSteps.length;
+  const skippedSteps = new Map<string, RuntimeStep>();
+  const warnings: string[] = [];
 
-  for (const step of input.plan.steps.filter((candidate) => candidate.kind === "application")) {
+  for (const step of applicationSteps.slice(maxProcesses)) {
+    skippedSteps.set(
+      step.id,
+      completeStep(step, "skipped", "Skipped because tracked process budget was reached.")
+    );
+    warnings.push(`${step.id} skipped because tracked process budget was reached.`);
+  }
+
+  for (const step of applicationSteps.slice(0, maxProcesses)) {
     if (step.command === undefined) {
       continue;
     }
@@ -71,11 +85,13 @@ export async function startApplicationProcesses(
 
   return {
     status: starts.some((start) => start.status === "failed") ? "failed" : "running",
-    steps: input.plan.steps.map((step) => startedSteps.get(step.id) ?? step),
+    steps: input.plan.steps.map(
+      (step) => startedSteps.get(step.id) ?? skippedSteps.get(step.id) ?? step
+    ),
     resources: starts.flatMap((start) => (start.resource === undefined ? [] : [start.resource])),
     processes: starts.flatMap((start) => (start.process === undefined ? [] : [start.process])),
     commandResults: starts.map((start) => start.commandResult),
-    warnings: starts.flatMap((start) => start.warnings),
+    warnings: [...warnings, ...starts.flatMap((start) => start.warnings)],
     errors: starts.flatMap((start) => start.errors)
   };
 }

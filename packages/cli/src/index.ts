@@ -23,7 +23,12 @@ export { buildPlaceholderCommandResult, mvpPlaceholderCommands } from "./command
 export type { MvpPlaceholderCommand } from "./commands/placeholders.js";
 export { scanCommand } from "./commands/scan.js";
 export type { ScanCommandData, ScanCommandOptions } from "./commands/scan.js";
+export { startCommand } from "./commands/start.js";
+export type { StartCommandOptions } from "./commands/start.js";
 export { statusCommand } from "./commands/status.js";
+export type { StatusCommandOptions } from "./commands/status.js";
+export { stopCommand } from "./commands/stop.js";
+export type { StopCommandOptions } from "./commands/stop.js";
 export type {
   AgentCommandMetadata,
   CommandContext,

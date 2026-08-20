@@ -1,0 +1,56 @@
+version: 1
+repository:
+  name: compose-dependency
+  type: service
+  primary_language: typescript
+environment:
+  DATABASE_URL:
+    name: DATABASE_URL
+    required: true
+    default_for_local: postgresql://board:board@localhost:5432/board
+setup:
+  install:
+    command: node
+    args:
+      - scripts/setup.js
+  migrate:
+    command: node
+    args:
+      - scripts/migrate.js
+  seed:
+    command: node
+    args:
+      - scripts/seed.js
+  steps:
+    - id: warm-cache
+      kind: custom
+      optional: true
+      optional_reason: Cache warming is not required for local runtime tests.
+      command:
+        command: node
+        args:
+          - scripts/optional.js
+services:
+  postgres:
+    id: postgres
+    type: postgresql
+    compose_service: postgres
+    ports:
+      - 5432
+applications:
+  api:
+    id: api
+    type: api
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL
+    dev:
+      command: node
+      args:
+        - scripts/app.js
+    health_check:
+      command:
+        command: node
+        args:
+          - scripts/health.js

@@ -9,7 +9,10 @@ import { validateContractCommand } from "./commands/contract/validate.js";
 import { initCommand } from "./commands/init.js";
 import { buildPlaceholderCommandResult, mvpPlaceholderCommands } from "./commands/placeholders.js";
 import { scanCommand } from "./commands/scan.js";
+import { startCommand } from "./commands/start.js";
 import { statusCommand } from "./commands/status.js";
+import { stopCommand } from "./commands/stop.js";
+import { installInterruptHandlers } from "./interrupt.js";
 import { buildSuccessResult } from "./output/result.js";
 import { printCommandResult } from "./output/printer.js";
 import { runCommand, runCommandSync, type CliResult } from "./runner.js";
@@ -90,7 +93,7 @@ export function createBoardProgram(options: BoardProgramOptions = {}): Command {
     .option("-V, --version", "output the CLI version");
 
   for (const command of mvpPlaceholderCommands) {
-    if (command === "init" || command === "status") {
+    if (command === "init" || command === "start" || command === "status" || command === "stop") {
       continue;
     }
 
@@ -109,6 +112,63 @@ export function createBoardProgram(options: BoardProgramOptions = {}): Command {
         );
       });
   }
+
+  program
+    .command("start")
+    .description("Start local repository resources from the Board contract")
+    .option("--dry-run", "preview the runtime execution plan without running commands")
+    .option("--skip-setup", "skip setup commands before starting services and apps")
+    .option("--only <id>", "limit runtime execution to one application or service id")
+    .option("--no-health-check", "skip runtime health checks")
+    .option(
+      "--timeout <seconds>",
+      "set the runtime timeout budget in seconds",
+      parsePositiveInteger
+    )
+    .option("--json", "emit machine-readable JSON output")
+    .action(
+      async (commandOptions: {
+        readonly dryRun?: boolean;
+        readonly skipSetup?: boolean;
+        readonly only?: string;
+        readonly healthCheck?: boolean;
+        readonly timeout?: number;
+        readonly json?: boolean;
+      }) => {
+        const globals = program.opts<{
+          readonly json?: boolean;
+          readonly quiet?: boolean;
+          readonly verbose?: boolean;
+          readonly cwd?: string;
+          readonly config?: string;
+          readonly color?: boolean;
+        }>();
+        const context = createCommandContext({
+          flags: {
+            ...globals,
+            json: Boolean(commandOptions.json ?? globals.json)
+          }
+        });
+
+        const interrupt = installInterruptHandlers(process);
+
+        try {
+          programOptions.onResult?.(
+            await runCommand({
+              command: "start",
+              context,
+              handler: () =>
+                startCommand(context, {
+                  ...commandOptions,
+                  interruptSignal: interrupt.signal
+                })
+            })
+          );
+        } finally {
+          interrupt.dispose();
+        }
+      }
+    );
 
   program
     .command("init")
@@ -155,17 +215,32 @@ export function createBoardProgram(options: BoardProgramOptions = {}): Command {
       }
     );
 
-  const status = program
+  program
     .command("status")
     .description("Report local repository and contract readiness")
-    .action(async () => {
-      const context = createCommandContextFromCommand(status);
+    .option("--session <session-id>", "report a specific runtime session")
+    .option("--json", "emit machine-readable JSON output")
+    .action(async (commandOptions: { readonly session?: string; readonly json?: boolean }) => {
+      const globals = program.opts<{
+        readonly json?: boolean;
+        readonly quiet?: boolean;
+        readonly verbose?: boolean;
+        readonly cwd?: string;
+        readonly config?: string;
+        readonly color?: boolean;
+      }>();
+      const context = createCommandContext({
+        flags: {
+          ...globals,
+          json: Boolean(commandOptions.json ?? globals.json)
+        }
+      });
 
       programOptions.onResult?.(
         await runCommand({
           command: "status",
           context,
-          handler: () => statusCommand(context)
+          handler: () => statusCommand(context, commandOptions)
         })
       );
     });
@@ -243,6 +318,45 @@ export function createBoardProgram(options: BoardProgramOptions = {}): Command {
                 Boolean(commandOptions.json ?? globals?.json),
                 context
               )
+          })
+        );
+      }
+    );
+
+  program
+    .command("stop")
+    .description("Stop Board-managed local runtime resources")
+    .option("--session <session-id>", "stop a specific runtime session")
+    .option("--all", "stop all Board-managed runtime sessions for this repository")
+    .option("--force", "force stop Board-managed processes")
+    .option("--json", "emit machine-readable JSON output")
+    .action(
+      async (commandOptions: {
+        readonly session?: string;
+        readonly all?: boolean;
+        readonly force?: boolean;
+        readonly json?: boolean;
+      }) => {
+        const globals = program.opts<{
+          readonly json?: boolean;
+          readonly quiet?: boolean;
+          readonly verbose?: boolean;
+          readonly cwd?: string;
+          readonly config?: string;
+          readonly color?: boolean;
+        }>();
+        const context = createCommandContext({
+          flags: {
+            ...globals,
+            json: Boolean(commandOptions.json ?? globals.json)
+          }
+        });
+
+        programOptions.onResult?.(
+          await runCommand({
+            command: "stop",
+            context,
+            handler: () => stopCommand(context, commandOptions)
           })
         );
       }
@@ -347,6 +461,16 @@ function createConfiguredProgram(
   configureOutputRecursively(program, outputConfiguration);
 
   return program;
+}
+
+function parsePositiveInteger(value: string): number {
+  const parsed = Number.parseInt(value, 10);
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new CommanderError(2, "board.invalid-argument", "Timeout must be a positive integer.");
+  }
+
+  return parsed;
 }
 
 function configureOutputRecursively(

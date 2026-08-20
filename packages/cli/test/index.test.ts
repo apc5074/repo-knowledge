@@ -11,7 +11,8 @@ import {
   getVersionInfo,
   renderHelp,
   runBoardCli,
-  runBoardCliAsync
+  runBoardCliAsync,
+  resolveLocalStatePaths
 } from "../src/index.js";
 import {
   createRepositoryFixture,
@@ -115,7 +116,12 @@ describe("@repo-knowledge/cli", () => {
 
   it("returns placeholder output for commands still deferred past Phase 2", () => {
     for (const command of boardCommands.filter(
-      (command) => command !== "init" && command !== "status" && command !== "scan"
+      (command) =>
+        command !== "init" &&
+        command !== "start" &&
+        command !== "status" &&
+        command !== "scan" &&
+        command !== "stop"
     )) {
       expect(runBoardCli([command])).toEqual({
         exitCode: 0,
@@ -125,8 +131,57 @@ describe("@repo-knowledge/cli", () => {
     }
   });
 
-  it("returns machine-readable placeholder output for MVP commands", () => {
-    const result = runBoardCli(["--json", "start"]);
+  it("previews board start without executing runtime state writes", async () => {
+    const fixture = await createRepositoryFixture({
+      name: "start-dry-run",
+      contract: "valid"
+    });
+    const dataRoot = await createTempDirectory("start-dry-run-data");
+    const cacheRoot = await createTempDirectory("start-dry-run-cache");
+    const result = await runCli(["start", "--dry-run"], {
+      cwd: fixture.root,
+      env: {
+        BOARD_DATA_HOME: dataRoot,
+        BOARD_CACHE_HOME: cacheRoot
+      }
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain("Built bootstrap runtime dry-run plan.");
+    const localState = resolveLocalStatePaths({
+      env: {
+        BOARD_DATA_HOME: dataRoot,
+        BOARD_CACHE_HOME: cacheRoot,
+        HOME: process.env.HOME
+      },
+      repositoryRoot: {
+        ok: true,
+        root: fixture.root,
+        foundBy: "git",
+        startDirectory: fixture.root
+      }
+    });
+
+    await expect(
+      stat(join(localState.repositoryStateRoot ?? dataRoot, "runtime", "latest.json"))
+    ).rejects.toThrow();
+  });
+
+  it("returns structured runtime JSON output for board start", async () => {
+    const fixture = await createRepositoryFixture({
+      name: "start-json",
+      contract: "valid"
+    });
+    const dataRoot = await createTempDirectory("start-json-data");
+    const cacheRoot = await createTempDirectory("start-json-cache");
+    const result = await runCli(["start", "--json"], {
+      cwd: fixture.root,
+      env: {
+        BOARD_DATA_HOME: dataRoot,
+        BOARD_CACHE_HOME: cacheRoot
+      }
+    });
 
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toBe("");
@@ -134,7 +189,52 @@ describe("@repo-knowledge/cli", () => {
       ok: true,
       status: "success",
       command: "start",
-      summary: "board start is a Phase 2 placeholder. Implementation belongs to a later phase."
+      data: {
+        runtime: {
+          status: "succeeded",
+          plan: {
+            repositoryRoot: fixture.root
+          },
+          session: {
+            id: expect.stringMatching(/^local-/),
+            repositoryRoot: fixture.root,
+            status: "succeeded"
+          },
+          report: {
+            status: "succeeded",
+            steps: {
+              total: expect.any(Number)
+            },
+            resources: {
+              total: expect.any(Number)
+            },
+            failedStepIds: [],
+            failedResourceIds: []
+          }
+        }
+      }
+    });
+  });
+
+  it("uses shared contract errors for missing board start contracts", async () => {
+    const fixture = await createRepositoryFixture({
+      name: "start-missing",
+      contract: "missing"
+    });
+    const result = await runCli(["start", "--json"], { cwd: fixture.root });
+
+    expect(result.exitCode).toBe(4);
+    expect(result.stderr).toBe("");
+    expect(parseJsonResult(result)).toMatchObject({
+      ok: false,
+      status: "failure",
+      command: "start",
+      errors: [
+        {
+          code: "contract-not-found"
+        }
+      ],
+      next_steps: ["Run board init to create .board/repository.yaml."]
     });
   });
 
@@ -516,7 +616,7 @@ describe("@repo-knowledge/cli", () => {
     });
   });
 
-  it("reports valid repository status without claiming runtime services are running", async () => {
+  it("reports valid repository status and clear absence of runtime state", async () => {
     const fixture = await createRepositoryFixture({
       name: "status-valid",
       contract: "valid"
@@ -528,9 +628,10 @@ describe("@repo-knowledge/cli", () => {
     expect(result.stderr).toBe("");
     expect(parseJsonResult(result)).toMatchObject({
       ok: true,
-      status: "success",
+      status: "warning",
       command: "status",
-      summary: "Repository found; contract valid.",
+      summary:
+        "Repository found; contract valid. No runtime session has been recorded for this repository.",
       data: {
         repository: {
           found: true,
@@ -545,7 +646,9 @@ describe("@repo-knowledge/cli", () => {
           version: "0.0.0"
         },
         runtime: {
-          managed_services_running: false
+          available: true,
+          status: "unknown",
+          summary: "No runtime session has been recorded for this repository."
         }
       },
       repository: {
@@ -555,7 +658,7 @@ describe("@repo-knowledge/cli", () => {
       contract: {
         valid: true
       },
-      next_steps: []
+      next_steps: ["Run board start before requesting runtime status."]
     });
   });
 
@@ -571,8 +674,10 @@ describe("@repo-knowledge/cli", () => {
     expect(result.stderr).toBe("");
     expect(parseJsonResult(result)).toMatchObject({
       ok: true,
+      status: "warning",
       command: "status",
-      summary: "Repository found; contract missing.",
+      summary:
+        "Repository found; contract missing. No runtime session has been recorded for this repository.",
       data: {
         repository: {
           found: true,
@@ -582,6 +687,10 @@ describe("@repo-knowledge/cli", () => {
           found: false,
           valid: false,
           reason: "contract-not-found"
+        },
+        runtime: {
+          available: true,
+          status: "unknown"
         }
       },
       next_steps: ["Run board init to create .board/repository.yaml."]
@@ -609,12 +718,18 @@ describe("@repo-knowledge/cli", () => {
     expect(result.stderr).toBe("");
     expect(payload).toMatchObject({
       ok: true,
+      status: "warning",
       command: "status",
-      summary: "Repository found; contract invalid.",
+      summary:
+        "Repository found; contract invalid. No runtime session has been recorded for this repository.",
       data: {
         contract: {
           valid: false,
           reason: "contract-invalid"
+        },
+        runtime: {
+          available: true,
+          status: "unknown"
         }
       },
       contract: {
@@ -647,10 +762,105 @@ describe("@repo-knowledge/cli", () => {
           reason: "not-found"
         },
         runtime: {
-          managed_services_running: false
+          available: false
         }
       },
       next_steps: ["Run board init from the repository root."]
+    });
+  });
+
+  it("reports a running runtime session through board status", async () => {
+    const fixture = await createRepositoryFixture({
+      name: "status-runtime",
+      contract: "valid"
+    });
+    const dataRoot = await createTempDirectory("status-runtime-data");
+    const cacheRoot = await createTempDirectory("status-runtime-cache");
+
+    await runCli(["start", "--json"], {
+      cwd: fixture.root,
+      env: {
+        BOARD_DATA_HOME: dataRoot,
+        BOARD_CACHE_HOME: cacheRoot
+      }
+    });
+
+    const result = await runCli(["status", "--json"], {
+      cwd: fixture.root,
+      env: {
+        BOARD_DATA_HOME: dataRoot,
+        BOARD_CACHE_HOME: cacheRoot
+      }
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(parseJsonResult(result)).toMatchObject({
+      ok: true,
+      command: "status",
+      data: {
+        runtime: {
+          available: true,
+          status: "succeeded",
+          session: {
+            status: "succeeded",
+            repositoryRoot: fixture.root
+          }
+        }
+      }
+    });
+  });
+
+  it("stops the latest Board-managed runtime session through board stop", async () => {
+    const fixture = await createRepositoryFixture({
+      name: "stop-runtime",
+      contract: "valid"
+    });
+    const dataRoot = await createTempDirectory("stop-runtime-data");
+    const cacheRoot = await createTempDirectory("stop-runtime-cache");
+
+    await runCli(["start", "--json"], {
+      cwd: fixture.root,
+      env: {
+        BOARD_DATA_HOME: dataRoot,
+        BOARD_CACHE_HOME: cacheRoot
+      }
+    });
+
+    const result = await runCli(["stop", "--json"], {
+      cwd: fixture.root,
+      env: {
+        BOARD_DATA_HOME: dataRoot,
+        BOARD_CACHE_HOME: cacheRoot
+      }
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(parseJsonResult(result)).toMatchObject({
+      ok: true,
+      command: "stop",
+      data: {
+        runtime: {
+          status: "stopped",
+          stopped_session_ids: [expect.stringMatching(/^local-/)]
+        }
+      }
+    });
+  });
+
+  it("reports missing runtime sessions clearly through board stop", async () => {
+    const fixture = await createRepositoryFixture({
+      name: "stop-missing",
+      contract: "valid"
+    });
+
+    const result = await runCli(["stop", "--json"], { cwd: fixture.root });
+
+    expect(result.exitCode).toBe(1);
+    expect(parseJsonResult(result)).toMatchObject({
+      ok: false,
+      command: "stop",
+      summary: "No Board-managed runtime session is available to stop.",
+      next_steps: ["Run board status or board start to create a runtime session first."]
     });
   });
 });

@@ -1,0 +1,14 @@
+version: 1
+repository:
+  name: invalid-runtime-fields
+  type: service
+  primary_language: javascript
+applications:
+  api:
+    id: worker
+    type: api
+    dev:
+      command: node
+      args:
+        - -e
+        - console.log('invalid')

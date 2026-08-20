@@ -1,12 +1,17 @@
+import { mkdtemp, realpath } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
   bootstrapRuntimePackage,
   buildBootstrapPlan,
+  createJsonRuntimeStateStore,
   getRuntimeStatus,
+  resolveRuntimeStateStorePaths,
   runtimeCommands,
   runtimeStatuses,
-  startRuntime,
   stopRuntime
 } from "../src/index.js";
 
@@ -22,6 +27,7 @@ describe("@repo-knowledge/bootstrap-runtime", () => {
       "running",
       "succeeded",
       "failed",
+      "interrupted",
       "skipped",
       "timed_out",
       "stopped",
@@ -53,30 +59,30 @@ describe("@repo-knowledge/bootstrap-runtime", () => {
     ]);
   });
 
-  it("exposes start, status, and stop placeholders through structured reports", () => {
-    expect(startRuntime({ repositoryRoot: "/repo" })).toMatchObject({
-      ok: true,
-      status: "pending",
-      plan: {
-        repositoryRoot: "/repo"
-      }
-    });
-    expect(getRuntimeStatus({ repositoryRoot: "/repo", sessionId: "session-1" })).toMatchObject({
-      ok: true,
+  it("exposes status and stop through structured reports", async () => {
+    const repositoryRoot = await tempRoot();
+    const stateStore = createJsonRuntimeStateStore(
+      resolveRuntimeStateStorePaths({
+        repositoryStateRoot: await tempRoot()
+      })
+    );
+
+    await expect(
+      getRuntimeStatus({ repositoryRoot, sessionId: "session-1", stateStore })
+    ).resolves.toMatchObject({
+      ok: false,
       status: "unknown",
-      resources: [],
-      session: {
-        id: "session-1",
-        repositoryRoot: "/repo",
-        status: "unknown",
-        resources: []
-      }
+      resources: []
     });
-    expect(stopRuntime({ repositoryRoot: "/repo" })).toMatchObject({
-      ok: true,
+    await expect(stopRuntime({ repositoryRoot, stateStore })).resolves.toMatchObject({
+      ok: false,
       status: "unknown",
       stoppedSessionIds: [],
       stoppedResources: []
     });
   });
 });
+
+async function tempRoot(): Promise<string> {
+  return realpath(await mkdtemp(join(tmpdir(), "board-runtime-index-")));
+}

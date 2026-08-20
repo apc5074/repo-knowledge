@@ -15,6 +15,9 @@ export type SetupRunnerInput = {
   readonly plan: BootstrapPlan;
   readonly environment?: RuntimeEnvironmentResolution;
   readonly runCommand?: RuntimeCommandExecutor;
+  readonly defaultTimeoutSeconds?: number;
+  readonly maxOutputBytes?: number;
+  readonly maxSetupSteps?: number;
 };
 
 export type SetupRunnerResult = {
@@ -33,7 +36,16 @@ export async function runSetupSteps(input: SetupRunnerInput): Promise<SetupRunne
   const warnings: string[] = [];
   const errors: string[] = [];
 
-  for (const step of setupSteps) {
+  const maxSetupSteps = input.maxSetupSteps ?? setupSteps.length;
+
+  for (const step of setupSteps.slice(maxSetupSteps)) {
+    const skipped = completeStep(step, "skipped", "Skipped because setup step budget was reached.");
+
+    completedSteps.set(step.id, skipped);
+    warnings.push(`${step.id} skipped because setup step budget was reached.`);
+  }
+
+  for (const step of setupSteps.slice(0, maxSetupSteps)) {
     const dependencyBlocker = findFailedRequiredDependency(step, completedSteps);
     const blockedByEnvironment = input.environment?.blockedStepIds.includes(step.id) ?? false;
 
@@ -68,7 +80,9 @@ export async function runSetupSteps(input: SetupRunnerInput): Promise<SetupRunne
     const commandResult = await runCommand({
       id: step.id,
       command: step.command,
-      env: input.environment?.values
+      env: input.environment?.values,
+      timeoutSeconds: input.defaultTimeoutSeconds,
+      maxOutputBytes: input.maxOutputBytes
     });
     commandResults.push(commandResult);
 

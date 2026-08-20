@@ -14,14 +14,33 @@ export type RuntimeTransition =
     };
 
 const allowedTransitions: Readonly<Record<RuntimeStatus, readonly RuntimeStatus[]>> = {
-  pending: ["running", "succeeded", "failed", "skipped", "timed_out", "stopped", "unknown"],
-  running: ["succeeded", "failed", "timed_out", "stopped", "unknown"],
+  pending: [
+    "running",
+    "succeeded",
+    "failed",
+    "interrupted",
+    "skipped",
+    "timed_out",
+    "stopped",
+    "unknown"
+  ],
+  running: ["succeeded", "failed", "interrupted", "timed_out", "stopped", "unknown"],
   succeeded: ["unknown"],
   failed: ["unknown"],
+  interrupted: ["stopped", "unknown"],
   skipped: ["unknown"],
   timed_out: ["stopped", "unknown"],
   stopped: ["unknown"],
-  unknown: ["pending", "running", "succeeded", "failed", "skipped", "timed_out", "stopped"]
+  unknown: [
+    "pending",
+    "running",
+    "succeeded",
+    "failed",
+    "interrupted",
+    "skipped",
+    "timed_out",
+    "stopped"
+  ]
 };
 
 export function canTransitionRuntimeStatus(from: RuntimeStatus, to: RuntimeStatus): boolean {
@@ -75,6 +94,10 @@ export function summarizeSessionStatus(session: BootstrapSession): RuntimeStatus
     return "failed";
   }
 
+  if (statuses.some((status) => status === "interrupted")) {
+    return "interrupted";
+  }
+
   if (statuses.some((status) => status === "timed_out")) {
     return "timed_out";
   }
@@ -91,5 +114,5 @@ export function summarizeSessionStatus(session: BootstrapSession): RuntimeStatus
 }
 
 export function isTerminalStatus(status: RuntimeStatus): boolean {
-  return ["succeeded", "failed", "skipped", "timed_out", "stopped"].includes(status);
+  return ["succeeded", "failed", "interrupted", "skipped", "timed_out", "stopped"].includes(status);
 }

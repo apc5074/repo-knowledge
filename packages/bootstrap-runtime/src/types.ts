@@ -1,5 +1,8 @@
 import type { RepositoryContract } from "@repo-knowledge/repository-contract";
 
+import type { RuntimeBudgetInput } from "./runtime-budget.js";
+import type { RuntimeStateStore } from "./state-store.js";
+
 export const runtimeCommands = ["start", "status", "stop"] as const;
 export type RuntimeCommandName = (typeof runtimeCommands)[number];
 
@@ -8,6 +11,7 @@ export const runtimeStatuses = [
   "running",
   "succeeded",
   "failed",
+  "interrupted",
   "skipped",
   "timed_out",
   "stopped",
@@ -156,6 +160,7 @@ export type BootstrapSession = {
   readonly resources: readonly RuntimeResource[];
   readonly commandResults: readonly RuntimeCommandResult[];
   readonly healthCheckResults: readonly RuntimeHealthCheckResult[];
+  readonly budget?: RuntimeBudgetInput;
   readonly warnings: readonly string[];
   readonly errors: readonly string[];
 };
@@ -195,6 +200,11 @@ export type BootstrapPlanResult = RuntimeReport & {
 
 export type StartRuntimeInput = BootstrapPlanInput & {
   readonly timeoutSeconds?: number;
+  readonly budget?: RuntimeBudgetInput;
+  readonly sessionId?: string;
+  readonly stateStore?: RuntimeStateStore;
+  readonly env?: Readonly<Record<string, string | undefined>>;
+  readonly interruptSignal?: AbortSignal;
 };
 
 export type StartRuntimeResult = RuntimeReport & {
@@ -205,6 +215,7 @@ export type StartRuntimeResult = RuntimeReport & {
 export type RuntimeStatusInput = {
   readonly repositoryRoot: string;
   readonly sessionId?: string;
+  readonly stateStore?: RuntimeStateStore;
 };
 
 export type RuntimeStatusResult = RuntimeStatusReport;
@@ -214,6 +225,12 @@ export type StopRuntimeInput = {
   readonly sessionId?: string;
   readonly all?: boolean;
   readonly force?: boolean;
+  readonly stateStore?: RuntimeStateStore;
+  readonly stopCompose?: (input: {
+    readonly repositoryRoot: string;
+    readonly projectName: string;
+    readonly down?: boolean;
+  }) => Promise<RuntimeCommandResult>;
 };
 
 export type StopRuntimeResult = RuntimeStopReport;
@@ -230,4 +247,47 @@ export type ManagedProcessRecord = {
   readonly startedAt: string;
   readonly stdoutExcerpt?: string;
   readonly stderrExcerpt?: string;
+};
+
+export type RuntimeReportCounts = {
+  readonly total: number;
+  readonly pending: number;
+  readonly running: number;
+  readonly succeeded: number;
+  readonly failed: number;
+  readonly interrupted: number;
+  readonly skipped: number;
+  readonly timedOut: number;
+  readonly stopped: number;
+  readonly unknown: number;
+};
+
+export type RuntimeReportDetails = {
+  readonly sessionId?: string;
+  readonly status: RuntimeStatus;
+  readonly steps: RuntimeReportCounts;
+  readonly resources: RuntimeReportCounts;
+  readonly healthChecks: RuntimeReportCounts;
+  readonly services: readonly string[];
+  readonly applications: readonly string[];
+  readonly ports: readonly {
+    readonly ownerId?: string;
+    readonly host?: string;
+    readonly port?: number;
+    readonly status: RuntimeStatus;
+  }[];
+  readonly failedStepIds: readonly string[];
+  readonly failedResourceIds: readonly string[];
+  readonly durations: {
+    readonly sessionMs?: number;
+    readonly commandMs: number;
+    readonly healthCheckMs: number;
+  };
+  readonly nextSteps: readonly string[];
+};
+
+export type RuntimeFormattedReport = {
+  readonly summary: string;
+  readonly human: string;
+  readonly details: RuntimeReportDetails;
 };

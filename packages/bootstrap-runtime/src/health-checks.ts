@@ -1,5 +1,6 @@
 import { runRuntimeCommand, type RuntimeCommandRunnerInput } from "./command-runner.js";
 import { redactRuntimeOutput } from "./command-redaction.js";
+import { defaultRuntimeBudget } from "./runtime-budget.js";
 import type {
   BootstrapPlan,
   RuntimeCommandResult,
@@ -29,7 +30,7 @@ export type RuntimeUrlHealthCheckRunner = (
 }>;
 
 const defaultRetries = 2;
-const defaultTimeoutMs = 1_000;
+const defaultTimeoutMs = defaultRuntimeBudget.healthCheckTimeoutMs;
 
 export async function runRuntimeHealthChecks(
   input: RuntimeHealthCheckRunnerInput

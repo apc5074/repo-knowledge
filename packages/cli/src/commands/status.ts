@@ -1,4 +1,13 @@
 import { createRequire } from "node:module";
+import { stat } from "node:fs/promises";
+
+import {
+  createJsonRuntimeStateStore,
+  formatRuntimeStatusReport,
+  getRuntimeStatus,
+  resolveRuntimeStateStorePaths,
+  type RuntimeStatusResult
+} from "../../../bootstrap-runtime/dist/index.js";
 
 import type { CommandContext } from "../command-context.js";
 import { buildSuccessResult, type CommandResult } from "../output/result.js";
@@ -6,7 +15,14 @@ import { buildSuccessResult, type CommandResult } from "../output/result.js";
 const require = createRequire(import.meta.url);
 const packageJson = require("../../package.json") as { readonly version: string };
 
-export async function statusCommand(context: CommandContext): Promise<CommandResult> {
+export type StatusCommandOptions = {
+  readonly session?: string;
+};
+
+export async function statusCommand(
+  context: CommandContext,
+  options: StatusCommandOptions = {}
+): Promise<CommandResult> {
   const [repositoryRoot, contract, localState] = await Promise.all([
     context.repositoryRoot(),
     context.contract(),
@@ -15,14 +31,39 @@ export async function statusCommand(context: CommandContext): Promise<CommandRes
   const repositoryFound = repositoryRoot.ok;
   const contractFound = contract.ok || contract.reason !== "contract-not-found";
   const contractValid = contract.ok;
-  const summary = buildStatusSummary(repositoryFound, contractFound, contractValid);
+  const runtime = await loadRuntimeStatus({
+    repositoryRoot,
+    repositoryStateRoot: localState.repositoryStateRoot,
+    sessionId: options.session,
+    getRuntimeStatus,
+    createJsonRuntimeStateStore,
+    resolveRuntimeStateStorePaths
+  });
+  const runtimeReport = runtime === undefined ? undefined : formatRuntimeStatusReport(runtime);
+  const summary = buildStatusSummary(
+    repositoryFound,
+    contractFound,
+    contractValid,
+    runtimeReport?.summary ?? runtime?.summary
+  );
   const nextSteps = !repositoryFound
     ? ["Run board init from the repository root."]
     : !contractFound
       ? ["Run board init to create .board/repository.yaml."]
-      : contract.ok
-        ? []
-        : ["Fix the contract issues above, then run board contract validate again."];
+      : !contract.ok
+        ? ["Fix the contract issues above, then run board contract validate again."]
+        : (runtime?.nextSteps ?? []);
+  const warnings = [
+    ...(contract.ok || contract.issues.length === 0
+      ? []
+      : contract.issues.map((issue) => `${issue.path}: ${issue.message}`)),
+    ...(runtime?.warnings ?? [])
+  ];
+  const status =
+    warnings.length > 0 ||
+    (runtime !== undefined && runtime.ok === false && runtime.session === undefined)
+      ? "warning"
+      : "success";
 
   return buildSuccessResult(context, {
     command: "status",
@@ -64,15 +105,23 @@ export async function statusCommand(context: CommandContext): Promise<CommandRes
       cli: {
         version: packageJson.version
       },
-      runtime: {
-        managed_services_running: false,
-        note: "Runtime process status is implemented in a later phase."
-      }
+      runtime:
+        runtime === undefined
+          ? {
+              available: false,
+              summary: "Runtime state is unavailable because no repository root was found."
+            }
+          : {
+              available: true,
+              status: runtime.status,
+              summary: runtime.summary,
+              session: runtime.session,
+              resources: runtime.resources,
+              report: runtimeReport?.details
+            }
     },
-    warnings:
-      contract.ok || contract.issues.length === 0
-        ? []
-        : contract.issues.map((issue) => `${issue.path}: ${issue.message}`),
+    warnings,
+    status,
     next_steps: nextSteps,
     repository: repositoryRoot.ok
       ? {
@@ -92,22 +141,71 @@ export async function statusCommand(context: CommandContext): Promise<CommandRes
   });
 }
 
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await stat(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function loadRuntimeStatus(input: {
+  readonly repositoryRoot: Awaited<ReturnType<CommandContext["repositoryRoot"]>>;
+  readonly repositoryStateRoot: string | undefined;
+  readonly sessionId: string | undefined;
+  readonly getRuntimeStatus: (typeof import("../../../bootstrap-runtime/dist/index.js"))["getRuntimeStatus"];
+  readonly createJsonRuntimeStateStore: (typeof import("../../../bootstrap-runtime/dist/index.js"))["createJsonRuntimeStateStore"];
+  readonly resolveRuntimeStateStorePaths: (typeof import("../../../bootstrap-runtime/dist/index.js"))["resolveRuntimeStateStorePaths"];
+}): Promise<RuntimeStatusResult | undefined> {
+  if (!input.repositoryRoot.ok) {
+    return undefined;
+  }
+
+  if (input.repositoryStateRoot === undefined || !(await pathExists(input.repositoryStateRoot))) {
+    return {
+      ok: false,
+      status: "unknown",
+      summary:
+        input.sessionId === undefined
+          ? "No runtime session has been recorded for this repository."
+          : `Runtime session ${input.sessionId} was not found.`,
+      warnings: [],
+      errors: [],
+      nextSteps: ["Run board start before requesting runtime status."],
+      resources: [],
+      session: undefined
+    };
+  }
+
+  return input.getRuntimeStatus({
+    repositoryRoot: input.repositoryRoot.root,
+    sessionId: input.sessionId,
+    stateStore: input.createJsonRuntimeStateStore(
+      input.resolveRuntimeStateStorePaths({
+        repositoryStateRoot: input.repositoryStateRoot
+      })
+    )
+  });
+}
+
 function buildStatusSummary(
   repositoryFound: boolean,
   contractFound: boolean,
-  contractValid: boolean
+  contractValid: boolean,
+  runtimeSummary?: string
 ): string {
-  if (!repositoryFound) {
-    return "Repository not found.";
+  const repositorySummary = !repositoryFound
+    ? "Repository not found."
+    : !contractFound
+      ? "Repository found; contract missing."
+      : !contractValid
+        ? "Repository found; contract invalid."
+        : "Repository found; contract valid.";
+
+  if (runtimeSummary === undefined) {
+    return repositorySummary;
   }
 
-  if (!contractFound) {
-    return "Repository found; contract missing.";
-  }
-
-  if (!contractValid) {
-    return "Repository found; contract invalid.";
-  }
-
-  return "Repository found; contract valid.";
+  return `${repositorySummary} ${runtimeSummary}`;
 }

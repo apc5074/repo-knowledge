@@ -1,0 +1,22 @@
+version: 1
+repository:
+  name: missing-env
+  type: service
+  primary_language: typescript
+environment:
+  API_TOKEN:
+    name: API_TOKEN
+    required: true
+    secret: true
+    example_value: <redacted>
+applications:
+  api:
+    id: api
+    type: api
+    environment:
+      - API_TOKEN
+    dev:
+      command: node
+      args:
+        - -e
+        - console.log('should not run')

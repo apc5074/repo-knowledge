@@ -1,43 +1,41 @@
 # Board
 
-Board is an agentic repo-readiness platform.
+Board is an agentic solution to keep repos up to date and fresh.
 
-The idea is to make unfamiliar codebases easier for humans and coding agents to understand, run, change, and verify. Most repos have a lot of hidden knowledge: the real setup command, which tests matter, what not to edit, which files are generated, which folder is old but still alive, and what patterns the team actually uses. Board is meant to turn that into structured, evidence-backed context.
+The agents will make any codebase easier for humans/agents to understand, run, and edit.
 
-This is still early, but the direction is clear: Board should help agents work inside a repo without guessing.
+Still early dev, but want to target problems of ai coded services that get to 100k+ LOC
 
 ## What It Is Trying To Become
 
 Board should be able to:
 
-- scan a repo and understand its apps, services, scripts, env vars, tests, docs, and generated files
-- maintain a `.board/repository.yaml` contract that describes how the repo works
-- give coding agents task-specific context through MCP
-- create repo-specific skills over time, like API writing standards based on the actual codebase
-- flag legacy, deprecated, replaced, or likely-unused code for developer review
-- choose the right checks for a change instead of blindly running everything
-- propose agent-made changes as PRs by default
-- allow local proposal apply only when a human explicitly asks for it
+- scan repo and understand the different files, services, env vars, test, etc
+- give coding agents (codex, claude, etc) task specific context via MCP
+- create repo specific skills over time (API style, how to add service, frontend design)
+- flag legacy, deprecated, likely-unused code for dev review
+- propose all changes by opening up PRs
+- tag likely owners of code
 
-The goal is not an agent that edits freely. The goal is a system where agents use typed tools, evidence, policy checks, and reviewable proposals.
+Want to make coding agents job as easy as possible - slim down ai gen code + real time context on logic
 
 ## What Exists So Far
 
-Current progress:
+There is already a real foundation here:
 
-- TypeScript/Python monorepo foundation
-- shared package boundaries for CLI, scanner, MCP server, API, worker, web app, agent orchestration, tools, memory, policy, and approvals
-- Python agent-worker placeholder for future LangGraph workflows
-- repository contract package with Zod schemas, YAML parsing/serialization, validation, migrations, fixtures, examples, and tests
+- a TypeScript/Python monorepo with the main packages split out
+- early package boundaries for the CLI, scanner, MCP server, API, worker, web app, agent orchestration, tools, memory, policy, and approvals
+- a Python worker placeholder for the future agent workflows
+- a repository contract package with the schemas, YAML parsing, validation, migrations, fixtures, examples, and tests
 - contract models for apps, services, setup, verification, environment variables, generated/sensitive/unsafe paths, related systems, and known limitations
-- detailed implementation plans for the CLI and deterministic scanner
+- detailed implementation plans for the CLI and the deterministic scanner
 
 ## Agent Shape
 
 Board is planned around specialized maintenance agents:
 
 - **Scanner Agent**: finds deterministic repo facts
-- **Contract Agent**: proposes `.board/repository.yaml` updates
+- **Contract Agent**: proposes contract updates
 - **Bootstrap Agent**: proves the repo can start
 - **Verification Agent**: picks and runs relevant checks
 - **Documentation Agent**: keeps onboarding and architecture docs fresh

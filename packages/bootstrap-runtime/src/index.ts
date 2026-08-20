@@ -1,17 +1,7 @@
 import { typesPackage } from "@repo-knowledge/types";
 
 import { createBootstrapPlan } from "./plan.js";
-import type {
-  BootstrapPlanInput,
-  BootstrapPlanResult,
-  BootstrapSession,
-  RuntimeStatusInput,
-  RuntimeStatusResult,
-  StartRuntimeInput,
-  StartRuntimeResult,
-  StopRuntimeInput,
-  StopRuntimeResult
-} from "./types.js";
+import type { BootstrapPlanInput, BootstrapPlanResult } from "./types.js";
 
 export const bootstrapRuntimePackage = {
   name: "@repo-knowledge/bootstrap-runtime",
@@ -20,6 +10,7 @@ export const bootstrapRuntimePackage = {
 } as const;
 
 export * from "./runtime.js";
+export * from "./runtime-budget.js";
 export * from "./command-runner.js";
 export * from "./contract-loader.js";
 export * from "./command-redaction.js";
@@ -27,13 +18,18 @@ export * from "./compose.js";
 export * from "./devcontainer.js";
 export * from "./environment.js";
 export * from "./health-checks.js";
+export * from "./orchestrator.js";
 export * from "./plan.js";
 export * from "./ports.js";
 export * from "./process-manager.js";
 export * from "./prerequisites.js";
+export * from "./reports.js";
 export * from "./setup-runner.js";
 export * from "./state-machine.js";
 export * from "./state-store.js";
+export * from "./status.js";
+export * from "./stop.js";
+export * from "./tools.js";
 export * from "./types.js";
 
 export function buildBootstrapPlan(input: BootstrapPlanInput): BootstrapPlanResult {
@@ -52,55 +48,5 @@ export function buildBootstrapPlan(input: BootstrapPlanInput): BootstrapPlanResu
       ? ["Run board start --dry-run to inspect the planned local bootstrap steps."]
       : ["Load a repository contract before executing the runtime plan."],
     plan
-  };
-}
-
-export function startRuntime(input: StartRuntimeInput): StartRuntimeResult {
-  const result = buildBootstrapPlan(input);
-
-  return {
-    ...result,
-    summary: "Start runtime execution is not implemented yet.",
-    nextSteps: ["Run board start --dry-run once the plan builder is implemented."]
-  };
-}
-
-export function getRuntimeStatus(input: RuntimeStatusInput): RuntimeStatusResult {
-  return {
-    ok: true,
-    status: "unknown",
-    summary: "Runtime status is not implemented yet.",
-    warnings: ["No runtime state store has been wired into status yet."],
-    errors: [],
-    nextSteps: ["Wire the local runtime state store into status in a later ticket."],
-    resources: [],
-    session: {
-      id: input.sessionId ?? "unknown",
-      repositoryRoot: input.repositoryRoot,
-      status: "unknown",
-      steps: [],
-      resources: [],
-      commandResults: [],
-      healthCheckResults: [],
-      warnings: [],
-      errors: []
-    } satisfies BootstrapSession
-  };
-}
-
-export function stopRuntime(input: StopRuntimeInput): StopRuntimeResult {
-  void input;
-
-  return {
-    ok: true,
-    status: "unknown",
-    summary: "Runtime stop is not implemented yet.",
-    warnings: [
-      "No runtime process registry has been wired into stop yet; stop cannot resolve owned resources."
-    ],
-    errors: [],
-    nextSteps: ["Wire process ownership tracking before stopping resources."],
-    stoppedSessionIds: [],
-    stoppedResources: []
   };
 }

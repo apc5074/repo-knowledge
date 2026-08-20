@@ -1,0 +1,19 @@
+version: 1
+repository:
+  name: python-health-app
+  type: service
+  primary_language: python
+applications:
+  api:
+    id: api
+    type: api
+    working_directory: .
+    dev:
+      command: python
+      args:
+        - scripts/app.py
+    health_check:
+      command:
+        command: python
+        args:
+          - scripts/health.py

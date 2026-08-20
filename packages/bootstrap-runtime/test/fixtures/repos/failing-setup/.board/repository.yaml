@@ -1,0 +1,11 @@
+version: 1
+repository:
+  name: failing-setup
+  type: service
+  primary_language: javascript
+setup:
+  install:
+    command: node
+    args:
+      - -e
+      - console.error('install failed'); process.exit(2)

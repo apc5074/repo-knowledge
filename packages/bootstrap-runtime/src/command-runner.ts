@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 
 import { boundUtf8Tail, redactRuntimeOutput } from "./command-redaction.js";
+import { defaultRuntimeBudget } from "./runtime-budget.js";
 import type { RuntimeCommandResult, RuntimePlannedCommand } from "./types.js";
 
 export type RuntimeCommandRunnerInput = {
@@ -13,14 +14,15 @@ export type RuntimeCommandRunnerInput = {
   readonly signal?: AbortSignal;
 };
 
-const defaultMaxOutputBytes = 8_192;
-
 export async function runRuntimeCommand(
   input: RuntimeCommandRunnerInput
 ): Promise<RuntimeCommandResult> {
   const startedAt = Date.now();
-  const timeoutSeconds = input.timeoutSeconds ?? input.command.timeoutSeconds;
-  const maxOutputBytes = input.maxOutputBytes ?? defaultMaxOutputBytes;
+  const timeoutSeconds =
+    input.timeoutSeconds ??
+    input.command.timeoutSeconds ??
+    defaultRuntimeBudget.commandTimeoutSeconds;
+  const maxOutputBytes = input.maxOutputBytes ?? defaultRuntimeBudget.outputExcerptBytes;
   const sourceEnvironment = input.env ?? process.env;
   const env = buildChildEnvironment(input.command.environment, sourceEnvironment);
   const selectedEnvironmentValues = input.command.environment

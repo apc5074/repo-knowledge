@@ -13,7 +13,8 @@ export default tseslint.config(
       "**/.uv-python/**",
       "**/.ruff_cache/**",
       "**/.mypy_cache/**",
-      "**/.pytest_cache/**"
+      "**/.pytest_cache/**",
+      "packages/bootstrap-runtime/test/fixtures/repos/**"
     ]
   },
   js.configs.recommended,
