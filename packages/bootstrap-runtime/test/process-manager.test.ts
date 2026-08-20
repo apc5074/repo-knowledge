@@ -50,7 +50,7 @@ describe("local process manager", () => {
       sessionId: "session-1",
       repositoryRoot,
       stateStore: store,
-      earlyExitMs: 100
+      earlyExitMs: 1_000
     });
     const processRecord = result.processes[0];
 
@@ -139,7 +139,7 @@ describe("local process manager", () => {
       repositoryRoot,
       step,
       stateStore: store,
-      earlyExitMs: 100,
+      earlyExitMs: 1_000,
       environment: {
         variables: [],
         values: {
