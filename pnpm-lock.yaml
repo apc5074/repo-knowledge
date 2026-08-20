@@ -78,6 +78,15 @@ importers:
         specifier: workspace:*
         version: link:../types
 
+  packages/bootstrap-runtime:
+    dependencies:
+      '@repo-knowledge/repository-contract':
+        specifier: workspace:*
+        version: link:../repository-contract
+      '@repo-knowledge/types':
+        specifier: workspace:*
+        version: link:../types
+
   packages/cli:
     dependencies:
       '@repo-knowledge/init-core':
