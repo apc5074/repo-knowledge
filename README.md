@@ -21,7 +21,7 @@ Want to make coding agents job as easy as possible - slim down ai gen code + rea
 
 ## What Exists So Far
 
-There is already a real foundation here:
+Currently done:
 
 - a TypeScript/Python monorepo with the main packages split out
 - early package boundaries for the CLI, scanner, MCP server, API, worker, web app, agent orchestration, tools, memory, policy, and approvals
