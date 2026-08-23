@@ -1,7 +1,7 @@
 import type { EvidenceReference } from "./evidence.js";
 
-export type RepositoryContractPlaceholder = {
+export type RepositoryContractRecord = {
   readonly kind: "repository-contract";
-  readonly schemaVersion: "phase-1-pending";
+  readonly schemaVersion: "1";
   readonly evidence?: readonly EvidenceReference[];
 };

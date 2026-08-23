@@ -37,6 +37,12 @@ export function selectVerificationChecks(
     }
   }
 
+  for (const check of input.defaultChecks ?? []) {
+    if (!shouldIncludeDefaults && explicitChecks.has(check.id)) {
+      addSelected(selected, check, { kind: "explicit", details: [check.id] });
+    }
+  }
+
   for (const check of input.checks) {
     const matchesPath = check.paths.some((pattern) =>
       input.changeSet.changedPaths.some(

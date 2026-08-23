@@ -19,8 +19,6 @@ export {
 export { validateContractCommand } from "./commands/contract/validate.js";
 export { initCommand } from "./commands/init.js";
 export type { InitCommandData, InitCommandOptions } from "./commands/init.js";
-export { buildPlaceholderCommandResult, mvpPlaceholderCommands } from "./commands/placeholders.js";
-export type { MvpPlaceholderCommand } from "./commands/placeholders.js";
 export { scanCommand } from "./commands/scan.js";
 export type { ScanCommandData, ScanCommandOptions } from "./commands/scan.js";
 export { startCommand } from "./commands/start.js";
@@ -29,6 +27,8 @@ export { statusCommand } from "./commands/status.js";
 export type { StatusCommandOptions } from "./commands/status.js";
 export { stopCommand } from "./commands/stop.js";
 export type { StopCommandOptions } from "./commands/stop.js";
+export { verifyCommand } from "./commands/verify.js";
+export type { VerifyCommandOptions } from "./commands/verify.js";
 export type {
   AgentCommandMetadata,
   CommandContext,

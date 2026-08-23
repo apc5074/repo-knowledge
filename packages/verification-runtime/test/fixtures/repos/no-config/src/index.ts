@@ -1,0 +1,1 @@
+export const noConfig = true;

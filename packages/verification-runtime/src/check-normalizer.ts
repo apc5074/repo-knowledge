@@ -66,7 +66,11 @@ export function normalizeVerificationChecks(
     for (const check of rule.checks ?? []) {
       checks.push(
         toVerificationCheck(
-          check,
+          {
+            ...check,
+            paths: inheritList(check.paths, rule.paths),
+            components: inheritList(check.components, rule.components)
+          },
           "rule-check",
           rule.id,
           check.id,
@@ -98,6 +102,13 @@ export function normalizeVerificationChecks(
   return { checks, warnings };
 }
 
+function inheritList<T>(
+  child: readonly T[] | undefined,
+  parent: readonly T[] | undefined
+): readonly T[] | undefined {
+  return child === undefined || child.length === 0 ? parent : child;
+}
+
 function toVerificationCheck(
   input: VerificationCheckLike,
   source: VerificationCheckSource,
@@ -116,7 +127,9 @@ function toVerificationCheck(
       args: input.command.args ?? [],
       cwd: input.command.working_directory,
       shell: input.command.shell,
-      timeoutSeconds: input.command.timeout_seconds
+      timeoutSeconds: input.command.timeout_seconds,
+      environment: input.command.environment ?? [],
+      optional: input.command.optional
     },
     paths: input.paths ?? [],
     components: input.components ?? [],

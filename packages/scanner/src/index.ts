@@ -1,4 +1,14 @@
-import { typesPackage } from "@repo-knowledge/types";
+import {
+  createDefaultRepositoryDetectors,
+  scanRepository as scanRepositoryCore,
+  type RepositoryDetector,
+  type RepositoryScanResult,
+  type ScanFileInventory,
+  type ScanRepositoryInput,
+  type ScanStats,
+  type ScanWarning,
+  type ScanError
+} from "@repo-knowledge/scanner-core";
 
 export {
   confidenceRank,
@@ -30,33 +40,31 @@ export type {
   ScannerFactKind,
   ScannerFactSource
 } from "./facts.js";
-import type { ScannerFact } from "./facts.js";
+export { createDefaultRepositoryDetectors };
+export type {
+  RepositoryDetector,
+  RepositoryScanResult,
+  ScanError,
+  ScanFileInventory,
+  ScanStats,
+  ScanWarning
+};
 
 export const scannerPackage = {
   name: "@repo-knowledge/scanner",
-  phase: typesPackage.phase
+  phase: "phase-3-repository-scanning",
+  status: "implemented"
 } as const;
 
-export type ScannerInput = {
-  readonly repositoryRoot: string;
+export type ScannerInput = Omit<ScanRepositoryInput, "detectors"> & {
+  readonly detectors?: ScanRepositoryInput["detectors"];
 };
 
-export type ScannerResult = {
-  readonly schemaVersion: "phase-0-placeholder";
-  readonly scannerVersion: "0.0.0";
-  readonly repositoryRoot: string;
-  readonly facts: readonly ScannerFact[];
-  readonly warnings: readonly string[];
-};
+export type ScannerResult = RepositoryScanResult;
 
-export function scanRepository(input: ScannerInput): ScannerResult {
-  return {
-    schemaVersion: "phase-0-placeholder",
-    scannerVersion: "0.0.0",
-    repositoryRoot: input.repositoryRoot,
-    facts: [],
-    warnings: [
-      "Phase 0 scanner placeholder: deterministic repository detectors are implemented in Phase 3."
-    ]
-  };
+export function scanRepository(input: ScannerInput): Promise<ScannerResult> {
+  return scanRepositoryCore({
+    ...input,
+    detectors: input.detectors ?? createDefaultRepositoryDetectors()
+  });
 }

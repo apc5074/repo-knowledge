@@ -99,6 +99,10 @@ export async function writeContract(root: string, yaml: string): Promise<string>
   return contractPath;
 }
 
+export async function writeRepositoryContract(root: string, yaml: string): Promise<string> {
+  return writeContract(root, yaml);
+}
+
 export async function runCli(
   args: readonly string[],
   options: CliHarnessRunOptions = {}

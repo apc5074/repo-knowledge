@@ -6,11 +6,12 @@ describe("@repo-knowledge/types", () => {
   it("exports the package identity", () => {
     expect(typesPackage).toEqual({
       name: "@repo-knowledge/types",
-      phase: "phase-0-placeholder"
+      phase: "phase-0-placeholder",
+      status: "shared-types"
     });
   });
 
-  it("exports placeholder domain types", () => {
+  it("exports shared domain types", () => {
     const evidence: EvidenceReference = {
       sourcePath: "package.json",
       confidence: "high"
@@ -19,7 +20,7 @@ describe("@repo-knowledge/types", () => {
     expect(evidence.sourcePath).toBe("package.json");
   });
 
-  it("exports agent trace ID placeholders", () => {
+  it("exports agent trace ID aliases", () => {
     const trace: AgentTraceIds = {};
 
     expect(trace).toEqual({});

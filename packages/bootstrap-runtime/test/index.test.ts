@@ -19,7 +19,9 @@ describe("@repo-knowledge/bootstrap-runtime", () => {
   it("exports package identity and stable command names", () => {
     expect(bootstrapRuntimePackage).toMatchObject({
       name: "@repo-knowledge/bootstrap-runtime",
-      owns: "local-bootstrap-runtime"
+      owns: "local-bootstrap-runtime",
+      phase: "phase-5-bootstrap-runtime",
+      status: "implemented"
     });
     expect(runtimeCommands).toEqual(["start", "status", "stop"]);
     expect(runtimeStatuses).toEqual([

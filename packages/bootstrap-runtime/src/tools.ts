@@ -44,14 +44,24 @@ export type RuntimeToolPolicyMetadata = {
   readonly allowedForAgents: boolean;
 };
 
+export type RuntimeToolSchemaName =
+  | "BootstrapPlanInput"
+  | "BootstrapPlanResult"
+  | "StartRuntimeInput"
+  | "StartRuntimeResult"
+  | "RuntimeStatusInput"
+  | "RuntimeStatusResult"
+  | "StopRuntimeInput"
+  | "StopRuntimeResult";
+
 export type RuntimeToolMetadata = {
   readonly name: BootstrapRuntimeToolName;
   readonly description: string;
   readonly localSideEffects: readonly RuntimeToolSideEffect[];
   readonly policy: RuntimeToolPolicyMetadata;
   readonly redactionGuarantees: readonly string[];
-  readonly inputSchema: "typed-placeholder";
-  readonly outputSchema: "typed-placeholder";
+  readonly inputSchema: RuntimeToolSchemaName;
+  readonly outputSchema: RuntimeToolSchemaName;
 };
 
 export type RuntimeToolExecutionContext = {
@@ -81,8 +91,8 @@ export const bootstrapRuntimeToolMetadata: readonly RuntimeToolMetadata[] = [
       "Does not execute commands.",
       "Does not read or persist environment variable values."
     ],
-    inputSchema: "typed-placeholder",
-    outputSchema: "typed-placeholder"
+    inputSchema: "BootstrapPlanInput",
+    outputSchema: "BootstrapPlanResult"
   },
   {
     name: "bootstrap.start",
@@ -103,8 +113,8 @@ export const bootstrapRuntimeToolMetadata: readonly RuntimeToolMetadata[] = [
       "Redacts selected environment values from command output excerpts.",
       "Bounds stored command output excerpts."
     ],
-    inputSchema: "typed-placeholder",
-    outputSchema: "typed-placeholder"
+    inputSchema: "StartRuntimeInput",
+    outputSchema: "StartRuntimeResult"
   },
   {
     name: "bootstrap.status",
@@ -118,8 +128,8 @@ export const bootstrapRuntimeToolMetadata: readonly RuntimeToolMetadata[] = [
       "Returns previously redacted stored output only.",
       "Does not read raw environment files."
     ],
-    inputSchema: "typed-placeholder",
-    outputSchema: "typed-placeholder"
+    inputSchema: "RuntimeStatusInput",
+    outputSchema: "RuntimeStatusResult"
   },
   {
     name: "bootstrap.stop",
@@ -134,8 +144,8 @@ export const bootstrapRuntimeToolMetadata: readonly RuntimeToolMetadata[] = [
       "Stops only resources recorded in Board runtime state.",
       "Does not inspect or persist raw environment values."
     ],
-    inputSchema: "typed-placeholder",
-    outputSchema: "typed-placeholder"
+    inputSchema: "StopRuntimeInput",
+    outputSchema: "StopRuntimeResult"
   }
 ] as const;
 

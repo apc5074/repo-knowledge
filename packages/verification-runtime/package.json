@@ -14,11 +14,12 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
-    "test": "vitest run",
+    "test": "pnpm --filter '@repo-knowledge/verification-runtime^...' build && vitest run",
     "test:watch": "vitest --watch",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "pnpm --filter '@repo-knowledge/verification-runtime^...' build && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@repo-knowledge/bootstrap-runtime": "workspace:*",
     "@repo-knowledge/repository-contract": "workspace:*"
   }
 }

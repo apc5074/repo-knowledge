@@ -19,6 +19,7 @@ import {
   createTempDirectory,
   parseJsonResult,
   runCli,
+  writeRepositoryContract,
   validRepositoryContractYaml,
   writeContract
 } from "./harness.js";
@@ -31,19 +32,17 @@ describe("@repo-knowledge/cli", () => {
       name: "@repo-knowledge/cli",
       binary: "board",
       version: "0.0.0",
-      phase: "phase-0-placeholder"
+      phase: "phase-2-cli",
+      status: "implemented"
     });
   });
 
-  it("registers all MVP command names", () => {
+  it("registers implemented command names", () => {
     expect(boardCommands).toEqual([
       "init",
       "start",
       "status",
       "scan",
-      "doctor",
-      "explain",
-      "task",
       "verify",
       "contract",
       "stop"
@@ -114,21 +113,456 @@ describe("@repo-knowledge/cli", () => {
     });
   });
 
-  it("returns placeholder output for commands still deferred past Phase 2", () => {
-    for (const command of boardCommands.filter(
-      (command) =>
-        command !== "init" &&
-        command !== "start" &&
-        command !== "status" &&
-        command !== "scan" &&
-        command !== "stop"
-    )) {
-      expect(runBoardCli([command])).toEqual({
-        exitCode: 0,
-        stdout: `board ${command} is a Phase 2 placeholder. Implementation belongs to a later phase.`,
-        stderr: ""
-      });
+  it("does not register deferred command names", () => {
+    for (const command of ["doctor", "explain", "task"] as const) {
+      const result = runBoardCli([command]);
+
+      expect(result.exitCode).toBe(1);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain(`unknown command '${command}'`);
     }
+  });
+
+  it("renders contract group help instead of placeholder output", () => {
+    const result = runBoardCli(["contract"]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain("Repository contract commands");
+    expect(result.stdout).toContain("validate");
+    expect(result.stdout).not.toContain("placeholder");
+  });
+
+  it("runs board verify against a simple contract fixture", async () => {
+    const fixture = await createRepositoryFixture({
+      name: "verify-success",
+      contract: "valid"
+    });
+
+    await writeRepositoryContract(
+      fixture.root,
+      `
+version: 1
+repository:
+  name: orders-service
+  type: service
+  primary_language: typescript
+applications:
+  api:
+    id: api
+    type: api
+    working_directory: src/api
+verification:
+  default:
+    - id: smoke
+      kind: smoke
+      command:
+        command: node
+        args:
+          - -e
+          - "console.log('ready')"
+`
+    );
+
+    const dataRoot = await createTempDirectory("verify-data");
+    const cacheRoot = await createTempDirectory("verify-cache");
+    const result = await runCli(["verify", "--json"], {
+      cwd: fixture.root,
+      env: {
+        BOARD_DATA_HOME: dataRoot,
+        BOARD_CACHE_HOME: cacheRoot
+      }
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toBe("");
+
+    const parsed = parseJsonResult<{
+      readonly verification: {
+        readonly plan: {
+          readonly selectedChecks: readonly { readonly id: string }[];
+        };
+        readonly run: {
+          readonly status: string;
+          readonly results: readonly { readonly id: string; readonly status: string }[];
+        };
+      };
+    }>(result);
+
+    expect(parsed).toMatchObject({
+      ok: true,
+      status: "success",
+      command: "verify",
+      data: {
+        verification: {
+          plan: {
+            selectedChecks: [expect.objectContaining({ id: "smoke" })]
+          },
+          run: {
+            status: "passed",
+            results: [expect.objectContaining({ id: "smoke", status: "passed" })]
+          }
+        }
+      }
+    });
+    expect(parsed.data?.verification.history).toMatchObject({
+      latest_path: expect.any(String),
+      history_path: expect.any(String),
+      run_path: expect.any(String)
+    });
+
+    const history = parsed.data?.verification.history as
+      | {
+          readonly latest_path: string;
+          readonly history_path: string;
+          readonly run_path: string;
+        }
+      | undefined;
+
+    expect(history).toBeDefined();
+    if (history !== undefined) {
+      await expect(stat(history.latest_path)).resolves.toBeDefined();
+      await expect(stat(history.history_path)).resolves.toBeDefined();
+      const persistedRun = JSON.parse(await readFile(history.run_path, "utf8")) as {
+        readonly runId: string;
+      };
+      expect(persistedRun.runId).toBe(parsed.data?.verification.run.runId);
+    }
+  });
+
+  it("shows board verify selection flags in command help", () => {
+    const result = runBoardCli(["verify", "--help"]);
+
+    expect(result.exitCode).toBe(0);
+    for (const flag of [
+      "--dry-run",
+      "--all",
+      "--changed",
+      "--since",
+      "--base",
+      "--paths",
+      "--component",
+      "--check",
+      "--skip",
+      "--no-default",
+      "--timeout",
+      "--json"
+    ]) {
+      expect(result.stdout).toContain(flag);
+    }
+  });
+
+  it("applies board verify selection flags during dry runs", async () => {
+    const fixture = await createRepositoryFixture({
+      name: "verify-selection-flags",
+      contract: "valid"
+    });
+
+    await writeRepositoryContract(
+      fixture.root,
+      `
+version: 1
+repository:
+  name: orders-service
+  type: service
+  primary_language: typescript
+applications:
+  api:
+    id: api
+    type: api
+    working_directory: src/api
+verification:
+  default:
+    - id: lint
+      command:
+        command: node
+        args:
+          - -e
+          - "console.log('lint')"
+  rules:
+    - id: api
+      paths:
+        - src/api/**
+      components:
+        - api
+      checks:
+        - id: api-check
+          command:
+            command: node
+            args:
+              - -e
+              - "console.log('api')"
+    - id: docs
+      paths:
+        - docs/**
+      checks:
+        - id: docs-check
+          command:
+            command: node
+            args:
+              - -e
+              - "console.log('docs')"
+`
+    );
+
+    const result = await runCli(
+      [
+        "verify",
+        "--dry-run",
+        "--json",
+        "--no-default",
+        "--paths",
+        "src/api/routes.ts",
+        "--paths",
+        "docs/readme.md",
+        "--component",
+        "api",
+        "--check",
+        "lint",
+        "--skip",
+        "lint",
+        "--timeout",
+        "1"
+      ],
+      { cwd: fixture.root }
+    );
+
+    expect(result.exitCode).toBe(0);
+    const parsed = parseJsonResult<{
+      readonly verification: {
+        readonly plan: {
+          readonly selectedChecks: readonly { readonly id: string }[];
+          readonly skippedChecks: readonly { readonly id: string }[];
+        };
+        readonly run: { readonly results: readonly unknown[] };
+      };
+    }>(result);
+
+    expect(parsed.data?.verification.plan.selectedChecks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "api-check" }),
+        expect.objectContaining({ id: "docs-check" })
+      ])
+    );
+    expect(parsed.data?.verification.plan.selectedChecks).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "lint" })])
+    );
+    expect(parsed.data?.verification.plan.skippedChecks).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "lint" })])
+    );
+    expect(parsed.data?.verification.run.results).toEqual([]);
+  });
+
+  it("runs no checks for changed-only verification when nothing changed", async () => {
+    const fixture = await createRepositoryFixture({
+      name: "verify-changed-only",
+      contract: "valid"
+    });
+
+    await writeVerificationMatrixContract(fixture.root);
+    const env = await createCliStateEnv("verify-changed-only");
+
+    const result = await runCli(["verify", "--changed", "--json"], {
+      cwd: fixture.root,
+      env
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(parseJsonResult(result)).toMatchObject({
+      ok: true,
+      data: {
+        verification: {
+          plan: {
+            selectedChecks: []
+          },
+          run: {
+            status: "not_configured",
+            results: []
+          }
+        }
+      }
+    });
+  });
+
+  it("selects checks for explicit board verify paths", async () => {
+    const fixture = await createRepositoryFixture({
+      name: "verify-explicit-path",
+      contract: "valid"
+    });
+
+    await writeVerificationMatrixContract(fixture.root);
+    const env = await createCliStateEnv("verify-explicit-path");
+
+    const result = await runCli(
+      ["verify", "--dry-run", "--json", "--no-default", "--paths", "src/api/routes.ts"],
+      { cwd: fixture.root, env }
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(parseJsonResult(result)).toMatchObject({
+      ok: true,
+      data: {
+        verification: {
+          plan: {
+            selectedChecks: [expect.objectContaining({ id: "api-check" })]
+          },
+          run: {
+            results: []
+          }
+        }
+      }
+    });
+  });
+
+  it("selects checks for explicit board verify components", async () => {
+    const fixture = await createRepositoryFixture({
+      name: "verify-explicit-component",
+      contract: "valid"
+    });
+
+    await writeVerificationMatrixContract(fixture.root);
+    const env = await createCliStateEnv("verify-explicit-component");
+
+    const result = await runCli(
+      ["verify", "--dry-run", "--json", "--no-default", "--component", "api"],
+      { cwd: fixture.root, env }
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(parseJsonResult(result)).toMatchObject({
+      ok: true,
+      data: {
+        verification: {
+          plan: {
+            selectedChecks: [expect.objectContaining({ id: "api-check" })]
+          },
+          run: {
+            results: []
+          }
+        }
+      }
+    });
+  });
+
+  it("runs explicit board verify checks", async () => {
+    const fixture = await createRepositoryFixture({
+      name: "verify-explicit-check",
+      contract: "valid"
+    });
+
+    await writeVerificationMatrixContract(fixture.root);
+    const env = await createCliStateEnv("verify-explicit-check");
+
+    const result = await runCli(["verify", "--json", "--no-default", "--check", "api-check"], {
+      cwd: fixture.root,
+      env
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(parseJsonResult(result)).toMatchObject({
+      ok: true,
+      data: {
+        verification: {
+          plan: {
+            selectedChecks: [expect.objectContaining({ id: "api-check" })]
+          },
+          run: {
+            status: "passed",
+            results: [expect.objectContaining({ id: "api-check", status: "passed" })]
+          }
+        }
+      }
+    });
+  });
+
+  it("reports missing board verify config clearly", async () => {
+    const fixture = await createRepositoryFixture({
+      name: "verify-no-config",
+      contract: "missing"
+    });
+
+    const result = await runCli(["verify", "--json"], {
+      cwd: fixture.root
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(parseJsonResult(result)).toMatchObject({
+      ok: false,
+      command: "verify",
+      errors: [expect.objectContaining({ code: "contract-not-found" })],
+      next_steps: ["Run board init to create .board/repository.yaml."]
+    });
+  });
+
+  it("rejects conflicting board verify selection flags", async () => {
+    const fixture = await createRepositoryFixture({
+      name: "verify-invalid-flags",
+      contract: "valid"
+    });
+
+    const result = await runCli(["verify", "--json", "--base", "HEAD", "--since", "HEAD"], {
+      cwd: fixture.root
+    });
+
+    expect(result.exitCode).toBe(2);
+    expect(result.stderr).toBe("");
+    expect(parseJsonResult(result)).toMatchObject({
+      ok: false,
+      errors: [expect.objectContaining({ code: "usage-error" })]
+    });
+  });
+
+  it("records failed board verify runs in local history", async () => {
+    const fixture = await createRepositoryFixture({
+      name: "verify-failure-history",
+      contract: "valid"
+    });
+
+    await writeRepositoryContract(
+      fixture.root,
+      `
+version: 1
+repository:
+  name: orders-service
+  type: service
+  primary_language: typescript
+verification:
+  default:
+    - id: fail
+      command:
+        command: node
+        args:
+          - -e
+          - "console.error('nope'); process.exit(2)"
+`
+    );
+
+    const dataRoot = await createTempDirectory("verify-failed-data");
+    const cacheRoot = await createTempDirectory("verify-failed-cache");
+    const result = await runCli(["verify", "--json"], {
+      cwd: fixture.root,
+      env: {
+        BOARD_DATA_HOME: dataRoot,
+        BOARD_CACHE_HOME: cacheRoot
+      }
+    });
+
+    expect(result.exitCode).toBe(1);
+    const parsed = parseJsonResult<{
+      readonly verification: {
+        readonly run: { readonly runId: string; readonly status: string };
+        readonly history: { readonly run_path: string };
+      };
+    }>(result);
+    expect(parsed.data?.verification.run.status).toBe("failed");
+
+    const persistedRun = JSON.parse(
+      await readFile(parsed.data?.verification.history.run_path ?? "", "utf8")
+    ) as { readonly runId: string; readonly status: string };
+    expect(persistedRun).toMatchObject({
+      runId: parsed.data?.verification.run.runId,
+      status: "failed"
+    });
   });
 
   it("previews board start without executing runtime state writes", async () => {
@@ -905,4 +1339,60 @@ async function createInvalidContractRepository(name: string): Promise<string> {
   );
 
   return root;
+}
+
+async function createCliStateEnv(name: string): Promise<NodeJS.ProcessEnv> {
+  return {
+    BOARD_DATA_HOME: await createTempDirectory(`${name}-data`),
+    BOARD_CACHE_HOME: await createTempDirectory(`${name}-cache`)
+  };
+}
+
+async function writeVerificationMatrixContract(root: string): Promise<void> {
+  await writeRepositoryContract(
+    root,
+    `
+version: 1
+repository:
+  name: verification-matrix
+  type: service
+  primary_language: typescript
+applications:
+  api:
+    id: api
+    type: api
+    working_directory: src/api
+verification:
+  default:
+    - id: lint
+      command:
+        command: node
+        args:
+          - -e
+          - "console.log('lint')"
+  rules:
+    - id: api
+      paths:
+        - src/api/**
+      components:
+        - api
+      checks:
+        - id: api-check
+          command:
+            command: node
+            args:
+              - -e
+              - "console.log('api')"
+    - id: docs
+      paths:
+        - docs/**
+      checks:
+        - id: docs-check
+          command:
+            command: node
+            args:
+              - -e
+              - "console.log('docs')"
+`
+  );
 }

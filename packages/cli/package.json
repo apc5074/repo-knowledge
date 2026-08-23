@@ -15,17 +15,18 @@
     }
   },
   "scripts": {
-    "build": "pnpm --filter @repo-knowledge/bootstrap-runtime build && tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
-    "test": "pnpm --filter @repo-knowledge/bootstrap-runtime build && vitest run",
+    "test": "pnpm --filter '@repo-knowledge/cli^...' build && vitest run",
     "test:watch": "vitest --watch",
-    "typecheck": "pnpm --filter @repo-knowledge/bootstrap-runtime build && tsc -p tsconfig.json --noEmit"
+    "typecheck": "pnpm --filter '@repo-knowledge/cli^...' build && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@repo-knowledge/bootstrap-runtime": "workspace:*",
     "@repo-knowledge/init-core": "workspace:*",
     "@repo-knowledge/repository-contract": "workspace:*",
     "@repo-knowledge/scanner-core": "workspace:*",
-    "@repo-knowledge/types": "workspace:*",
+    "@repo-knowledge/verification-runtime": "workspace:*",
     "commander": "^15.0.0"
   }
 }

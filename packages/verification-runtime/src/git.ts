@@ -27,7 +27,7 @@ export async function detectGitChangeSet(
     return undefined;
   }
 
-  const [diffResult, statusResult] = await Promise.all([
+  const [diffResult, statusResult] = await Promise.allSettled([
     execFileAsync(
       "git",
       ["-C", input.repositoryRoot, "diff", "--name-only", "--diff-filter=ACDMRTUXB", baseRef],
@@ -38,8 +38,25 @@ export async function detectGitChangeSet(
     })
   ]);
 
-  const diffPaths = diffResult.stdout.split("\n");
-  const statusPaths = parseStatusOutput(statusResult.stdout);
+  const warnings: string[] = [];
+  const diffPaths =
+    diffResult.status === "fulfilled"
+      ? diffResult.value.stdout.split("\n")
+      : warnAndReturnEmpty(
+          warnings,
+          `Could not diff verification changes against ${baseRef}: ${formatGitError(
+            diffResult.reason
+          )}`
+        );
+  const statusPaths =
+    statusResult.status === "fulfilled"
+      ? parseStatusOutput(statusResult.value.stdout)
+      : warnAndReturnEmpty(
+          warnings,
+          `Could not read git status for verification changes: ${formatGitError(
+            statusResult.reason
+          )}`
+        );
 
   const changedPaths = [...diffPaths, ...statusPaths]
     .map((line) => line.trim())
@@ -51,7 +68,7 @@ export async function detectGitChangeSet(
     baseRef,
     headRef: "HEAD",
     changedPaths,
-    warnings: []
+    warnings
   };
 }
 
@@ -67,4 +84,17 @@ function parseStatusOutput(output: string): readonly string[] {
   }
 
   return paths;
+}
+
+function warnAndReturnEmpty(warnings: string[], warning: string): readonly string[] {
+  warnings.push(warning);
+  return [];
+}
+
+function formatGitError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
 }

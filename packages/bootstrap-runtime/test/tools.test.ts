@@ -39,8 +39,8 @@ describe("agent-compatible bootstrap runtime tools", () => {
         requiresApproval: true,
         allowedForAgents: true
       },
-      inputSchema: "typed-placeholder",
-      outputSchema: "typed-placeholder"
+      inputSchema: "StartRuntimeInput",
+      outputSchema: "StartRuntimeResult"
     });
     expect(getBootstrapRuntimeToolMetadata("bootstrap.stop").redactionGuarantees).toEqual(
       expect.arrayContaining(["Stops only resources recorded in Board runtime state."])

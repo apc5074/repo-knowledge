@@ -19,7 +19,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@repo-knowledge/repository-contract": "workspace:*",
-    "@repo-knowledge/types": "workspace:*"
+    "@repo-knowledge/repository-contract": "workspace:*"
   }
 }

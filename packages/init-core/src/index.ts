@@ -1,9 +1,8 @@
-import { typesPackage } from "@repo-knowledge/types";
-
 export const initCorePackage = {
   name: "@repo-knowledge/init-core",
   owns: "contract-initialization-workflow",
-  phase: typesPackage.phase
+  phase: "phase-4-repository-initialization",
+  status: "implemented"
 } as const;
 
 export { generateLocalDevelopmentAssumptions } from "./assumptions.js";

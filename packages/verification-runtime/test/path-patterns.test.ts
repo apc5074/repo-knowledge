@@ -14,4 +14,18 @@ describe("@repo-knowledge/verification-runtime path patterns", () => {
     expect(matchesPathPattern("src/*.ts", "src/app.ts")).toBe(true);
     expect(matchesPathPattern("src/*.ts", "src/app/test.ts")).toBe(false);
   });
+
+  it("matches cross-platform path separators", () => {
+    expect(matchesPathPattern("src\\**", "src/app/server.ts")).toBe(true);
+    expect(matchesPathPattern("src/**", "src\\app\\server.ts")).toBe(true);
+  });
+
+  it("rejects repository paths outside the root", () => {
+    expect(() =>
+      normalizeRepositoryPath({ repositoryRoot: "/repo", path: "../secret.txt" })
+    ).toThrow("repository root");
+    expect(() =>
+      normalizeRepositoryPath({ repositoryRoot: "/repo", path: "/repo/src/app.ts" })
+    ).toThrow("relative");
+  });
 });

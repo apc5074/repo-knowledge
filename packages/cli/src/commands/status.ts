@@ -7,7 +7,7 @@ import {
   getRuntimeStatus,
   resolveRuntimeStateStorePaths,
   type RuntimeStatusResult
-} from "../../../bootstrap-runtime/dist/index.js";
+} from "@repo-knowledge/bootstrap-runtime";
 
 import type { CommandContext } from "../command-context.js";
 import { buildSuccessResult, type CommandResult } from "../output/result.js";
@@ -154,9 +154,9 @@ async function loadRuntimeStatus(input: {
   readonly repositoryRoot: Awaited<ReturnType<CommandContext["repositoryRoot"]>>;
   readonly repositoryStateRoot: string | undefined;
   readonly sessionId: string | undefined;
-  readonly getRuntimeStatus: (typeof import("../../../bootstrap-runtime/dist/index.js"))["getRuntimeStatus"];
-  readonly createJsonRuntimeStateStore: (typeof import("../../../bootstrap-runtime/dist/index.js"))["createJsonRuntimeStateStore"];
-  readonly resolveRuntimeStateStorePaths: (typeof import("../../../bootstrap-runtime/dist/index.js"))["resolveRuntimeStateStorePaths"];
+  readonly getRuntimeStatus: typeof getRuntimeStatus;
+  readonly createJsonRuntimeStateStore: typeof createJsonRuntimeStateStore;
+  readonly resolveRuntimeStateStorePaths: typeof resolveRuntimeStateStorePaths;
 }): Promise<RuntimeStatusResult | undefined> {
   if (!input.repositoryRoot.ok) {
     return undefined;

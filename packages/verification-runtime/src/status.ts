@@ -14,7 +14,7 @@ export function classifyVerificationRunStatus(
   }
 
   if (results.length === 0) {
-    return { status: "unknown", exitCode: 0 };
+    return { status: "not_configured", exitCode: 0 };
   }
 
   if (results.some((result) => result.status === "failed" || result.status === "timed_out")) {

@@ -6,7 +6,7 @@ import {
   RepositoryContractParseError,
   type RepositoryContract,
   type ValidationIssue
-} from "../../repository-contract/src/index.js";
+} from "@repo-knowledge/repository-contract";
 
 export const defaultVerificationContractPath = ".board/repository.yaml";
 

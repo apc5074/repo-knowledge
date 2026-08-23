@@ -1,0 +1,35 @@
+version: 1
+repository:
+  name: basic-verification
+  type: service
+  primary_language: typescript
+verification:
+  default:
+    - id: typecheck
+      kind: typecheck
+      command:
+        command: node
+        args:
+          - -e
+          - "console.log('typecheck')"
+  rules:
+    - id: api-paths
+      paths:
+        - src/api/**
+      checks:
+        - id: api-check
+          kind: smoke
+          command:
+            command: node
+            args:
+              - -e
+              - "console.log('api')"
+    - id: core-component
+      components:
+        - core
+      commands:
+        - id: core-command
+          command: node
+          args:
+            - -e
+            - "console.log('core')"

@@ -74,6 +74,8 @@ export type VerificationCheckResult = {
   readonly durationMs?: number;
   readonly stdoutExcerpt?: string;
   readonly stderrExcerpt?: string;
+  readonly stdoutTruncated?: boolean;
+  readonly stderrTruncated?: boolean;
   readonly evidence: readonly string[];
 };
 

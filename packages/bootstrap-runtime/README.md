@@ -114,7 +114,7 @@ Future Bootstrap Agent workflows should use the agent-compatible wrappers export
 - `getBootstrapRuntimeStatusTool()`
 - `stopBootstrapRuntimeTool()`
 
-The wrappers include metadata for local side effects, policy placeholders, and redaction guarantees. Agent orchestration remains outside this package.
+The wrappers include metadata for local side effects, policy boundaries, typed input/output schema names, and redaction guarantees. Agent orchestration remains outside this package.
 
 ## Troubleshooting
 

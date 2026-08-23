@@ -99,7 +99,7 @@ export function commandNotImplementedError(command: string): BoardError {
     exitCode: exitCodes.commandNotImplemented,
     message: `board ${command} is not implemented yet.`,
     metadata: { command },
-    nextSteps: ["Check the Phase 2 plan for the ticket that implements this command."]
+    nextSteps: ["Use an implemented command or add the command handler before exposing it."]
   });
 }
 

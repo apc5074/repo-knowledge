@@ -57,4 +57,31 @@ describe("@repo-knowledge/verification-runtime deduplication", () => {
       ])
     ).toThrow(VerificationCheckConflictError);
   });
+
+  it("preserves the merged selection reason when duplicates come from multiple selectors", () => {
+    const result = deduplicateVerificationChecks([
+      {
+        id: "lint",
+        selected: true,
+        source: "default",
+        command: { command: "pnpm", args: ["lint"] },
+        paths: [],
+        components: [],
+        requires: [],
+        reason: { kind: "default", details: ["default"] }
+      },
+      {
+        id: "lint",
+        selected: true,
+        source: "default",
+        command: { command: "pnpm", args: ["lint"] },
+        paths: [],
+        components: [],
+        requires: [],
+        reason: { kind: "path", details: ["src/**"] }
+      }
+    ]);
+
+    expect(result.checks[0]?.reason.details).toEqual(["default", "src/**"]);
+  });
 });

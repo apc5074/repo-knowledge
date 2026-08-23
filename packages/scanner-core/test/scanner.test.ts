@@ -18,7 +18,8 @@ describe("@repo-knowledge/scanner-core", () => {
   it("exports the scanner core package identity", () => {
     expect(scannerCorePackage).toEqual({
       name: "@repo-knowledge/scanner-core",
-      phase: "phase-0-placeholder"
+      phase: "phase-3-repository-scanning",
+      status: "implemented"
     });
   });
 

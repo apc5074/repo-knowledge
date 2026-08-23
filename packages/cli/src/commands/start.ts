@@ -3,7 +3,7 @@ import {
   formatStartRuntimeReport,
   resolveRuntimeStateStorePaths,
   startRuntime
-} from "../../../bootstrap-runtime/dist/index.js";
+} from "@repo-knowledge/bootstrap-runtime";
 
 import type { CommandContext } from "../command-context.js";
 import { ensureLocalStateDirectories } from "../config/local-state.js";

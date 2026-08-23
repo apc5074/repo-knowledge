@@ -1,7 +1,5 @@
 import { resolve } from "node:path";
 
-import { typesPackage } from "@repo-knowledge/types";
-
 import {
   normalizeScanError,
   runDetector,
@@ -18,7 +16,8 @@ import {
 
 export const scannerCorePackage = {
   name: "@repo-knowledge/scanner-core",
-  phase: typesPackage.phase
+  phase: "phase-3-repository-scanning",
+  status: "implemented"
 } as const;
 
 export type ScanRepositoryInput = {

@@ -25,9 +25,9 @@ describe("@repo-knowledge/verification-runtime status classification", () => {
     });
   });
 
-  it("treats empty runs as unknown without failing", () => {
+  it("treats empty runs as not configured without failing", () => {
     expect(classifyVerificationRunStatus([])).toMatchObject({
-      status: "unknown",
+      status: "not_configured",
       exitCode: 0
     });
   });

@@ -2,20 +2,18 @@ import { createRequire } from "node:module";
 
 import { Command, CommanderError } from "commander";
 
-import { typesPackage } from "@repo-knowledge/types";
-
 import { createCommandContext, createCommandContextFromCommand } from "./command-context.js";
 import { validateContractCommand } from "./commands/contract/validate.js";
 import { initCommand } from "./commands/init.js";
-import { buildPlaceholderCommandResult, mvpPlaceholderCommands } from "./commands/placeholders.js";
 import { scanCommand } from "./commands/scan.js";
 import { startCommand } from "./commands/start.js";
 import { statusCommand } from "./commands/status.js";
 import { stopCommand } from "./commands/stop.js";
+import { verifyCommand } from "./commands/verify.js";
 import { installInterruptHandlers } from "./interrupt.js";
 import { buildSuccessResult } from "./output/result.js";
 import { printCommandResult } from "./output/printer.js";
-import { runCommand, runCommandSync, type CliResult } from "./runner.js";
+import { runCommand, type CliResult } from "./runner.js";
 
 export type { CliResult } from "./runner.js";
 
@@ -23,9 +21,11 @@ const require = createRequire(import.meta.url);
 const packageJson = require("../package.json") as { readonly version: string };
 
 export const boardCommands = [
-  ...mvpPlaceholderCommands.slice(0, 3),
+  "init",
+  "start",
+  "status",
   "scan",
-  ...mvpPlaceholderCommands.slice(3, 7),
+  "verify",
   "contract",
   "stop"
 ] as const;
@@ -36,7 +36,8 @@ export const cliPackage = {
   name: "@repo-knowledge/cli",
   binary: "board",
   version: packageJson.version,
-  phase: typesPackage.phase
+  phase: "phase-2-cli",
+  status: "implemented"
 } as const;
 
 export type VersionInfo = {
@@ -91,27 +92,6 @@ export function createBoardProgram(options: BoardProgramOptions = {}): Command {
     .option("--config <path>", "set the repository contract path")
     .option("--no-color", "disable terminal colors")
     .option("-V, --version", "output the CLI version");
-
-  for (const command of mvpPlaceholderCommands) {
-    if (command === "init" || command === "start" || command === "status" || command === "stop") {
-      continue;
-    }
-
-    const registeredCommand = program
-      .command(command)
-      .description(`${command} command placeholder`)
-      .action(() => {
-        const context = createCommandContextFromCommand(registeredCommand);
-
-        options.onResult?.(
-          runCommandSync({
-            command,
-            context,
-            handler: () => buildPlaceholderCommandResult(command, context)
-          })
-        );
-      });
-  }
 
   program
     .command("start")
@@ -280,18 +260,72 @@ export function createBoardProgram(options: BoardProgramOptions = {}): Command {
       }
     );
 
+  program
+    .command("verify")
+    .description("Select and run repository verification checks")
+    .option("--dry-run", "preview the selected verification plan without running commands")
+    .option("--all", "run every configured verification check")
+    .option("--changed", "verify only checks selected by detected changes")
+    .option("--since <ref>", "detect changes since a specific git ref")
+    .option("--base <ref>", "detect changes relative to a specific git base ref")
+    .option("--paths <path>", "select checks as if the path changed", collectOptionValue, [])
+    .option("--component <id>", "select checks for a component id", collectOptionValue, [])
+    .option("--check <id>", "run an explicit check id", collectOptionValue, [])
+    .option("--skip <id>", "skip a selected check id", collectOptionValue, [])
+    .option("--no-default", "suppress default verification checks")
+    .option("--timeout <seconds>", "set the per-check timeout in seconds", parsePositiveInteger)
+    .option("--json", "emit machine-readable JSON output")
+    .action(
+      async (
+        commandOptions: {
+          readonly dryRun?: boolean;
+          readonly all?: boolean;
+          readonly changed?: boolean;
+          readonly since?: string;
+          readonly base?: string;
+          readonly paths?: readonly string[];
+          readonly component?: readonly string[];
+          readonly check?: readonly string[];
+          readonly skip?: readonly string[];
+          readonly default?: boolean;
+          readonly timeout?: number;
+          readonly json?: boolean;
+        },
+        command: Command
+      ) => {
+        const globals = command.parent?.opts<{
+          readonly json?: boolean;
+          readonly quiet?: boolean;
+          readonly verbose?: boolean;
+          readonly cwd?: string;
+          readonly config?: string;
+          readonly color?: boolean;
+        }>();
+        const mergedContext = createCommandContext({
+          flags: {
+            ...globals,
+            json: Boolean(commandOptions.json ?? globals?.json)
+          }
+        });
+
+        programOptions.onResult?.(
+          await runCommand({
+            command: "verify",
+            context: mergedContext,
+            handler: () =>
+              verifyCommand(mergedContext, {
+                ...commandOptions,
+                noDefault: commandOptions.default === false
+              })
+          })
+        );
+      }
+    );
+
   const contract = program.command("contract").description("Repository contract commands");
 
   contract.action(() => {
-    const context = createCommandContextFromCommand(contract);
-
-    options.onResult?.(
-      runCommandSync({
-        command: "contract",
-        context,
-        handler: () => buildPlaceholderCommandResult("contract", context)
-      })
-    );
+    contract.outputHelp();
   });
 
   contract
@@ -471,6 +505,10 @@ function parsePositiveInteger(value: string): number {
   }
 
   return parsed;
+}
+
+function collectOptionValue(value: string, previous: readonly string[] = []): readonly string[] {
+  return [...previous, value];
 }
 
 function configureOutputRecursively(

@@ -33,4 +33,32 @@ describe("@repo-knowledge/verification-runtime check normalization", () => {
       }
     });
   });
+
+  it("inherits rule paths and components for nested checks", () => {
+    const result = normalizeVerificationChecks({
+      mode: "git",
+      rules: [
+        {
+          id: "api",
+          paths: ["apps/api/**"],
+          components: ["api"],
+          checks: [
+            {
+              id: "api-test",
+              command: {
+                command: "pnpm",
+                args: ["test"]
+              }
+            }
+          ]
+        }
+      ]
+    });
+
+    expect(result.checks[0]).toMatchObject({
+      id: "api-test",
+      paths: ["apps/api/**"],
+      components: ["api"]
+    });
+  });
 });

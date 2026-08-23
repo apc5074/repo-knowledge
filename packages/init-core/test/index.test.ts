@@ -14,7 +14,9 @@ describe("@repo-knowledge/init-core", () => {
   it("exports package identity", () => {
     expect(initCorePackage).toMatchObject({
       name: "@repo-knowledge/init-core",
-      owns: "contract-initialization-workflow"
+      owns: "contract-initialization-workflow",
+      phase: "phase-4-repository-initialization",
+      status: "implemented"
     });
   });
 

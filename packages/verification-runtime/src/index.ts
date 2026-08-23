@@ -25,5 +25,8 @@ export * from "./dependency-order.js";
 export * from "./environment.js";
 export * from "./command-runner.js";
 export * from "./dry-run.js";
+export * from "./agent-tool.js";
 export * from "./orchestrator.js";
 export * from "./status.js";
+export * from "./reports.js";
+export * from "./json-output.js";

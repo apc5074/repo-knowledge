@@ -83,12 +83,12 @@ importers:
       '@repo-knowledge/repository-contract':
         specifier: workspace:*
         version: link:../repository-contract
-      '@repo-knowledge/types':
-        specifier: workspace:*
-        version: link:../types
 
   packages/cli:
     dependencies:
+      '@repo-knowledge/bootstrap-runtime':
+        specifier: workspace:*
+        version: link:../bootstrap-runtime
       '@repo-knowledge/init-core':
         specifier: workspace:*
         version: link:../init-core
@@ -98,9 +98,9 @@ importers:
       '@repo-knowledge/scanner-core':
         specifier: workspace:*
         version: link:../scanner-core
-      '@repo-knowledge/types':
+      '@repo-knowledge/verification-runtime':
         specifier: workspace:*
-        version: link:../types
+        version: link:../verification-runtime
       commander:
         specifier: ^15.0.0
         version: 15.0.0
@@ -113,9 +113,6 @@ importers:
       '@repo-knowledge/scanner-core':
         specifier: workspace:*
         version: link:../scanner-core
-      '@repo-knowledge/types':
-        specifier: workspace:*
-        version: link:../types
 
   packages/mcp-server:
     dependencies:
@@ -146,9 +143,6 @@ importers:
       '@repo-knowledge/scanner-core':
         specifier: workspace:*
         version: link:../scanner-core
-      '@repo-knowledge/types':
-        specifier: workspace:*
-        version: link:../types
 
   packages/scanner-core:
     dependencies:
@@ -163,6 +157,9 @@ importers:
 
   packages/verification-runtime:
     dependencies:
+      '@repo-knowledge/bootstrap-runtime':
+        specifier: workspace:*
+        version: link:../bootstrap-runtime
       '@repo-knowledge/repository-contract':
         specifier: workspace:*
         version: link:../repository-contract

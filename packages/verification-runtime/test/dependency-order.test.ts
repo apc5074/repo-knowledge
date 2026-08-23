@@ -46,4 +46,31 @@ describe("@repo-knowledge/verification-runtime dependency ordering", () => {
       ])
     ).toThrow(VerificationDependencyError);
   });
+
+  it("fails on dependency cycles", () => {
+    expect(() =>
+      orderVerificationChecks([
+        {
+          id: "lint",
+          selected: true,
+          source: "default",
+          command: { command: "pnpm", args: ["lint"] },
+          paths: [],
+          components: [],
+          requires: ["test"],
+          reason: { kind: "default", details: [] }
+        },
+        {
+          id: "test",
+          selected: true,
+          source: "rule-check",
+          command: { command: "pnpm", args: ["test"] },
+          paths: [],
+          components: [],
+          requires: ["lint"],
+          reason: { kind: "rule", details: [] }
+        }
+      ])
+    ).toThrow(VerificationDependencyError);
+  });
 });

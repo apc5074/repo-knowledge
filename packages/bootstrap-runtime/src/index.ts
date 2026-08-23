@@ -1,12 +1,11 @@
-import { typesPackage } from "@repo-knowledge/types";
-
 import { createBootstrapPlan } from "./plan.js";
 import type { BootstrapPlanInput, BootstrapPlanResult } from "./types.js";
 
 export const bootstrapRuntimePackage = {
   name: "@repo-knowledge/bootstrap-runtime",
   owns: "local-bootstrap-runtime",
-  phase: typesPackage.phase
+  phase: "phase-5-bootstrap-runtime",
+  status: "implemented"
 } as const;
 
 export * from "./runtime.js";

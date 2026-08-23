@@ -2,9 +2,9 @@
 
 Shared TypeScript types for repository readiness concepts.
 
-Phase 0 intentionally keeps this package minimal. Phase 1 will design the real `.board/repository.yaml` schema, runtime validators, migration strategy, and complete TypeScript contract types.
+This package owns the shared type vocabulary used across contracts, scanners, CLI output, and agent-facing data structures.
 
-Current placeholder domains:
+Current exported domains:
 
 - agent run IDs, tool-call IDs, proposal IDs, and approval IDs.
 - agent runs and tool calls.

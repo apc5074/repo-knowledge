@@ -1,14 +1,22 @@
 # @repo-knowledge/scanner
 
-Phase 3 foundation for deterministic repository analysis.
+Public package for deterministic repository analysis.
 
-This package will own scanner core behavior in Phase 3. It should stay deterministic and callable as an auditable tool by future Board maintenance agents.
+This package is the stable import path for scanner consumers. It delegates execution to `@repo-knowledge/scanner-core`, runs the default detector set when callers do not pass explicit detectors, and re-exports the scanner fact and evidence vocabulary.
 
-Current detector execution remains a placeholder until later Phase 3 tickets wire scanner behavior through `@repo-knowledge/scanner-core`. The core package owns the fact taxonomy, confidence model, evidence helpers, scanner result shape, and detector runner so every detector emits the same auditable shape.
+Use `@repo-knowledge/scanner-core` directly only when building or testing detector internals.
+
+```ts
+import { scanRepository } from "@repo-knowledge/scanner";
+
+const result = await scanRepository({
+  root: process.cwd()
+});
+```
 
 ## Scan Scope
 
-Default inventory should prefer git-tracked files from `git ls-files`. Untracked local files are opt-in for a later scanner option. Non-Git directories can fall back to a filesystem walk with default ignores for dependency folders, build output, caches, generated artifacts, binary files, and local-only files.
+Default inventory prefers git-tracked files from `git ls-files`. Untracked local files are opt-in through scanner-core inventory options. Non-Git directories can fall back to a filesystem walk with default ignores for dependency folders, build output, caches, generated artifacts, binary files, and local-only files.
 
 Tracked code, config, documentation, and agent-instruction files stay in scope, but detectors should handle them differently:
 

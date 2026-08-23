@@ -1,4 +1,4 @@
-import type { RepositoryContract } from "../../repository-contract/src/index.js";
+import type { RepositoryContract } from "@repo-knowledge/repository-contract";
 
 import type { SelectedVerificationCheck, VerificationCheck } from "./types.js";
 

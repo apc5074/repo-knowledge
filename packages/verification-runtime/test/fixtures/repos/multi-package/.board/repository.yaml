@@ -1,0 +1,42 @@
+version: 1
+repository:
+  name: multi-package
+  type: monorepo
+  primary_language: typescript
+applications:
+  api:
+    id: api
+    type: api
+    working_directory: apps/api
+related_repositories: []
+external_systems: []
+known_limitations: []
+verification:
+  default:
+    - id: lint
+      command:
+        command: node
+        args:
+          - -e
+          - "console.log('lint')"
+  rules:
+    - id: api
+      paths:
+        - apps/api/**
+      components:
+        - api
+      checks:
+        - id: api-test
+          command:
+            command: node
+            args:
+              - -e
+              - "console.log('api-test')"
+    - id: shared
+      paths:
+        - packages/shared/**
+      commands:
+        - command: node
+          args:
+            - -e
+            - "console.log('shared-test')"

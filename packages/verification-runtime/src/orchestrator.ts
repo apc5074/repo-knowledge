@@ -9,6 +9,10 @@ import { orderVerificationChecks } from "./dependency-order.js";
 import { resolveVerificationComponentImpact } from "./component-impact.js";
 import { resolveVerificationEnvironment } from "./environment.js";
 import { runVerificationCommand } from "./command-runner.js";
+import {
+  createJsonVerificationHistoryStore,
+  resolveVerificationHistoryStorePaths
+} from "./history-store.js";
 import { selectVerificationChecks } from "./selector.js";
 import { summarizeVerificationRun } from "./status.js";
 import type {
@@ -23,11 +27,18 @@ export type VerificationOrchestratorInput = {
   readonly contractPath?: string;
   readonly mode?: VerificationSelectionMode;
   readonly dryRun?: boolean;
+  readonly baseRef?: string;
+  readonly sinceRef?: string;
+  readonly all?: boolean;
+  readonly changed?: boolean;
   readonly changedPaths?: readonly string[];
   readonly requestedPaths?: readonly string[];
   readonly requestedComponentIds?: readonly string[];
   readonly requestedCheckIds?: readonly string[];
+  readonly skippedCheckIds?: readonly string[];
   readonly noDefault?: boolean;
+  readonly timeoutSeconds?: number;
+  readonly repositoryStateRoot?: string;
   readonly env?: Readonly<Record<string, string | undefined>>;
 };
 
@@ -69,28 +80,32 @@ export async function runVerificationOrchestrator(
   const changeSetResult = input.changedPaths
     ? {
         repositoryRoot: input.repositoryRoot,
-        baseRef: "HEAD",
+        baseRef: input.baseRef ?? input.sinceRef ?? "HEAD",
         headRef: "HEAD",
         changedPaths: [...input.changedPaths],
         warnings: []
       }
-    : await detectGitChangeSet({ repositoryRoot: input.repositoryRoot });
+    : await detectGitChangeSet({
+        repositoryRoot: input.repositoryRoot,
+        baseRef: input.baseRef ?? input.sinceRef
+      });
 
   const changeSet = {
-    mode: input.mode ?? "git",
+    mode: input.all === true ? "all" : input.changed === true ? "git" : (input.mode ?? "git"),
     baseRef: changeSetResult?.baseRef ?? "HEAD",
     headRef: changeSetResult?.headRef ?? "HEAD",
     paths: changeSetResult?.changedPaths ?? [],
     changedPaths: changeSetResult?.changedPaths ?? [],
     warnings: changeSetResult?.warnings ?? []
   } as const;
+  const selectionMode = changeSet.mode;
   const componentImpact = resolveVerificationComponentImpact({
     contract: contractResult.contract,
     changedPaths: changeSet.changedPaths,
     explicitComponentIds: input.requestedComponentIds
   });
   const normalized = normalizeVerificationChecks({
-    mode: input.mode ?? "git",
+    mode: selectionMode,
     defaultChecks: contractResult.verification?.default?.map((check) => ({
       ...check,
       command: {
@@ -101,20 +116,23 @@ export async function runVerificationOrchestrator(
     rules: contractResult.verification?.rules as never
   });
   const selection = selectVerificationChecks({
-    mode: input.mode ?? "git",
+    mode: selectionMode,
     defaultChecks: normalized.checks.filter((check) => check.source === "default"),
     checks: normalized.checks.filter((check) => check.source !== "default"),
     changeSet,
     requestedPaths: input.requestedPaths,
     requestedComponentIds: componentImpact.impactedComponentIds,
     requestedCheckIds: input.requestedCheckIds,
-    noDefault: input.noDefault
+    noDefault: input.noDefault === true || input.changed === true
   });
   const deduplicated = deduplicateVerificationChecks(selection.selectedChecks);
   const ordered = orderVerificationChecks(deduplicated.checks);
+  const skippedCheckIds = new Set(input.skippedCheckIds ?? []);
+  const skippedChecks = ordered.checks.filter((check) => skippedCheckIds.has(check.id));
+  const selectedChecks = ordered.checks.filter((check) => !skippedCheckIds.has(check.id));
   const environment = resolveVerificationEnvironment({
     contract: contractResult.contract,
-    checks: ordered.checks,
+    checks: selectedChecks,
     env: input.env
   });
 
@@ -122,8 +140,13 @@ export async function runVerificationOrchestrator(
     const plan = buildVerificationPlan({
       contractPath: contractResult.path,
       changeSet,
-      selectedChecks: ordered.checks,
-      skippedChecks: [],
+      selectedChecks,
+      skippedChecks: skippedChecks.map((check) => ({
+        ...check,
+        status: "skipped",
+        skipReason: "skipped-by-user",
+        evidence: []
+      })),
       warnings: [
         ...changeSet.warnings,
         ...componentImpact.reasons,
@@ -150,7 +173,7 @@ export async function runVerificationOrchestrator(
   }
 
   const results = [];
-  for (const check of ordered.checks) {
+  for (const check of selectedChecks) {
     if (environment.blockedCheckIds.includes(check.id)) {
       results.push({
         id: check.id,
@@ -167,7 +190,8 @@ export async function runVerificationOrchestrator(
     results.push(
       await runVerificationCommand({
         check,
-        env: environment.values
+        env: environment.values,
+        timeoutSeconds: input.timeoutSeconds
       })
     );
   }
@@ -175,8 +199,13 @@ export async function runVerificationOrchestrator(
   const plan = buildVerificationPlan({
     contractPath: contractResult.path,
     changeSet,
-    selectedChecks: ordered.checks,
-    skippedChecks: [],
+    selectedChecks,
+    skippedChecks: skippedChecks.map((check) => ({
+      ...check,
+      status: "skipped",
+      skipReason: "skipped-by-user",
+      evidence: []
+    })),
     warnings: [
       ...changeSet.warnings,
       ...componentImpact.reasons,
@@ -187,14 +216,20 @@ export async function runVerificationOrchestrator(
       ...environment.warnings
     ]
   });
-  const run = createVerificationRun(plan, contractResult.version, environment.errors, results);
+  const run = summarizeVerificationRun(
+    createVerificationRun(plan, contractResult.version, environment.errors, results)
+  );
+  const history = await persistVerificationRunHistory({
+    repositoryStateRoot: input.repositoryStateRoot,
+    run
+  });
 
   return {
     ok: true,
     dryRun: false,
-    exitCode: summarizeVerificationRun(run).status === "failed" ? 1 : 0,
+    exitCode: run.status === "failed" ? 1 : 0,
     plan,
-    run
+    run: history.run
   };
 }
 
@@ -240,6 +275,23 @@ function createVerificationRun(
     warnings: plan.warnings,
     errors
   };
+}
+
+async function persistVerificationRunHistory(input: {
+  readonly repositoryStateRoot?: string;
+  readonly run: VerificationRun;
+}): Promise<{ readonly run: VerificationRun }> {
+  if (input.repositoryStateRoot === undefined) {
+    return { run: input.run };
+  }
+
+  const store = createJsonVerificationHistoryStore(
+    resolveVerificationHistoryStorePaths({ repositoryStateRoot: input.repositoryStateRoot })
+  );
+  await store.ensure();
+  await store.writeRun(input.run);
+
+  return { run: input.run };
 }
 
 function summarizeVerificationResults(results: VerificationRun["results"]): VerificationSummary {

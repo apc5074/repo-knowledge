@@ -1,10 +1,10 @@
 import { spawn } from "node:child_process";
 
 import {
-  boundUtf8Tail,
-  redactRuntimeOutput
-} from "../../bootstrap-runtime/src/command-redaction.js";
-import { defaultRuntimeBudget } from "../../bootstrap-runtime/src/runtime-budget.js";
+  defaultRuntimeBudget,
+  createBoundedRuntimeExcerpt,
+  boundUtf8Tail
+} from "@repo-knowledge/bootstrap-runtime";
 
 import type { VerificationCheck, VerificationCheckResult } from "./types.js";
 
@@ -37,6 +37,8 @@ export async function runVerificationCommand(
   return new Promise((resolve) => {
     let stdout = "";
     let stderr = "";
+    let stdoutTruncated = false;
+    let stderrTruncated = false;
     let timedOut = false;
     let settled = false;
     const child = spawn(input.check.command.command, input.check.command.args, {
@@ -58,10 +60,14 @@ export async function runVerificationCommand(
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
     child.stdout.on("data", (chunk) => {
-      stdout = appendBounded(stdout, chunk, maxOutputBytes);
+      const excerpt = appendBounded(stdout, chunk, maxOutputBytes);
+      stdout = excerpt.text;
+      stdoutTruncated ||= excerpt.truncated;
     });
     child.stderr.on("data", (chunk) => {
-      stderr = appendBounded(stderr, chunk, maxOutputBytes);
+      const excerpt = appendBounded(stderr, chunk, maxOutputBytes);
+      stderr = excerpt.text;
+      stderrTruncated ||= excerpt.truncated;
     });
     child.on("error", (error) => {
       if (settled) {
@@ -78,7 +84,10 @@ export async function runVerificationCommand(
           stdout,
           `${stderr}${error.message}`,
           false,
-          redactedValues
+          redactedValues,
+          maxOutputBytes,
+          stdoutTruncated,
+          stderrTruncated
         )
       );
     });
@@ -97,7 +106,10 @@ export async function runVerificationCommand(
           stdout,
           stderr,
           timedOut,
-          redactedValues
+          redactedValues,
+          maxOutputBytes,
+          stdoutTruncated,
+          stderrTruncated
         )
       );
     });
@@ -119,7 +131,10 @@ function createVerificationResult(
   stdout: string,
   stderr: string,
   timedOut: boolean,
-  redactedValues: readonly string[]
+  redactedValues: readonly string[],
+  maxOutputBytes: number,
+  stdoutTruncated: boolean,
+  stderrTruncated: boolean
 ): VerificationCheckResult {
   const status = timedOut ? "timed_out" : exitCode === 0 ? "passed" : "failed";
 
@@ -131,8 +146,18 @@ function createVerificationResult(
     selectedBy: check.reason,
     exitCode: exitCode ?? undefined,
     durationMs: Date.now() - startedAt,
-    stdoutExcerpt: redactRuntimeOutput({ text: stdout, additionalValues: redactedValues }),
-    stderrExcerpt: redactRuntimeOutput({ text: stderr, additionalValues: redactedValues }),
+    stdoutExcerpt: createBoundedRuntimeExcerpt({
+      text: stdout,
+      additionalValues: redactedValues,
+      maxBytes: maxOutputBytes
+    }),
+    stderrExcerpt: createBoundedRuntimeExcerpt({
+      text: stderr,
+      additionalValues: redactedValues,
+      maxBytes: maxOutputBytes
+    }),
+    stdoutTruncated,
+    stderrTruncated,
     timedOut,
     evidence: []
   };
@@ -157,8 +182,17 @@ function buildChildEnvironment(
   return childEnvironment;
 }
 
-function appendBounded(current: string, chunk: string, maxBytes: number): string {
-  return boundUtf8Tail(`${current}${chunk}`, maxBytes);
+function appendBounded(
+  current: string,
+  chunk: string,
+  maxBytes: number
+): { readonly text: string; readonly truncated: boolean } {
+  const next = `${current}${chunk}`;
+  const text = boundUtf8Tail(next, maxBytes);
+  return {
+    text,
+    truncated: text !== next
+  };
 }
 
 function copyBaseEnvironment(
