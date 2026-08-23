@@ -14,3 +14,16 @@ export const verificationRuntimeBehavior = {
 
 export * from "./types.js";
 export * from "./history-store.js";
+export * from "./contract-loader.js";
+export * from "./git.js";
+export * from "./path-patterns.js";
+export * from "./component-impact.js";
+export * from "./check-normalizer.js";
+export * from "./selector.js";
+export * from "./deduplication.js";
+export * from "./dependency-order.js";
+export * from "./environment.js";
+export * from "./command-runner.js";
+export * from "./dry-run.js";
+export * from "./orchestrator.js";
+export * from "./status.js";

@@ -62,7 +62,9 @@ export function createJsonVerificationHistoryStore(
     readRun: (runId) => readJson<VerificationRun>(runPath(paths, runId)),
     readLatestRun: async () => {
       const latest = await readJson<{ readonly runId: string }>(paths.latestPath);
-      return latest === undefined ? undefined : readJson<VerificationRun>(runPath(paths, latest.runId));
+      return latest === undefined
+        ? undefined
+        : readJson<VerificationRun>(runPath(paths, latest.runId));
     },
     readHistory: async () =>
       (await readJson<VerificationHistory>(paths.historyPath)) ?? {
@@ -76,7 +78,10 @@ export function createJsonVerificationHistoryStore(
   };
 }
 
-async function updateHistory(paths: VerificationHistoryStorePaths, run: VerificationRun): Promise<void> {
+async function updateHistory(
+  paths: VerificationHistoryStorePaths,
+  run: VerificationRun
+): Promise<void> {
   const existing = (await readJson<VerificationHistory>(paths.historyPath)) ?? {
     schemaVersion: 1,
     runs: []

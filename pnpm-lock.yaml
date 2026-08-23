@@ -161,6 +161,12 @@ importers:
 
   packages/types: {}
 
+  packages/verification-runtime:
+    dependencies:
+      '@repo-knowledge/repository-contract':
+        specifier: workspace:*
+        version: link:../repository-contract
+
 packages:
 
   '@emnapi/core@1.11.1':

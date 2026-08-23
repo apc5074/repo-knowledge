@@ -71,7 +71,9 @@ describe("@repo-knowledge/verification-runtime history store", () => {
     expect(latest?.runId).toBe("run-50");
     expect(await store.readRun("run-49")).toMatchObject({ runId: "run-49" });
 
-    const latestJson = JSON.parse(await readFile(join(store.paths.verificationRoot, "latest.json"), "utf8"));
+    const latestJson = JSON.parse(
+      await readFile(join(store.paths.verificationRoot, "latest.json"), "utf8")
+    );
     expect(latestJson).toMatchObject({ runId: "run-50" });
   });
 

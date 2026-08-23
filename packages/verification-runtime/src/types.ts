@@ -10,13 +10,7 @@ export const verificationStatuses = [
 
 export type VerificationStatus = (typeof verificationStatuses)[number];
 
-export const verificationSelectionModes = [
-  "git",
-  "all",
-  "paths",
-  "components",
-  "checks"
-] as const;
+export const verificationSelectionModes = ["git", "all", "paths", "components", "checks"] as const;
 
 export type VerificationSelectionMode = (typeof verificationSelectionModes)[number];
 
@@ -37,12 +31,7 @@ export type VerificationCheckSelectionReason = {
 };
 
 export type VerificationCheckSkipReason =
-  | "not-configured"
-  | "blocked"
-  | "skipped-by-user"
-  | "duplicate"
-  | "dependency"
-  | "dry-run";
+  "not-configured" | "blocked" | "skipped-by-user" | "duplicate" | "dependency" | "dry-run";
 
 export type VerificationCheck = {
   readonly id: string;
@@ -56,6 +45,8 @@ export type VerificationCheck = {
     readonly cwd?: string;
     readonly shell?: boolean;
     readonly timeoutSeconds?: number;
+    readonly environment?: readonly string[];
+    readonly optional?: boolean;
   };
   readonly paths: readonly string[];
   readonly components: readonly string[];
