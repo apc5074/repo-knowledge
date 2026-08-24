@@ -105,6 +105,18 @@ importers:
         specifier: ^15.0.0
         version: 15.0.0
 
+  packages/doctor-runtime:
+    dependencies:
+      '@repo-knowledge/bootstrap-runtime':
+        specifier: workspace:*
+        version: link:../bootstrap-runtime
+      '@repo-knowledge/repository-contract':
+        specifier: workspace:*
+        version: link:../repository-contract
+      '@repo-knowledge/verification-runtime':
+        specifier: workspace:*
+        version: link:../verification-runtime
+
   packages/init-core:
     dependencies:
       '@repo-knowledge/repository-contract':

@@ -1,0 +1,26 @@
+{
+  "name": "@repo-knowledge/doctor-runtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@repo-knowledge/bootstrap-runtime": "workspace:*",
+    "@repo-knowledge/verification-runtime": "workspace:*",
+    "@repo-knowledge/repository-contract": "workspace:*"
+  }
+}
