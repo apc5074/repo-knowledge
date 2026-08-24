@@ -44,6 +44,8 @@ describe("@repo-knowledge/cli", () => {
       "status",
       "scan",
       "verify",
+      "doctor",
+      "legacy",
       "contract",
       "stop"
     ]);
@@ -114,7 +116,7 @@ describe("@repo-knowledge/cli", () => {
   });
 
   it("does not register deferred command names", () => {
-    for (const command of ["doctor", "explain", "task"] as const) {
+    for (const command of ["explain", "task"] as const) {
       const result = runBoardCli([command]);
 
       expect(result.exitCode).toBe(1);

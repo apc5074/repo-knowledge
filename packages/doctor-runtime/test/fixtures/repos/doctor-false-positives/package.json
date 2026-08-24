@@ -1,0 +1,8 @@
+{
+  "name": "doctor-false-positives",
+  "private": true,
+  "scripts": {
+    "test": "node src/v1/compat.js",
+    "v1:compat": "node src/v1/compat.js"
+  }
+}

@@ -4,7 +4,9 @@ import { Command, CommanderError } from "commander";
 
 import { createCommandContext, createCommandContextFromCommand } from "./command-context.js";
 import { validateContractCommand } from "./commands/contract/validate.js";
+import { doctorCommand } from "./commands/doctor.js";
 import { initCommand } from "./commands/init.js";
+import { legacyExplainCommand, legacyListCommand, legacyReviewCommand } from "./commands/legacy.js";
 import { scanCommand } from "./commands/scan.js";
 import { startCommand } from "./commands/start.js";
 import { statusCommand } from "./commands/status.js";
@@ -26,6 +28,8 @@ export const boardCommands = [
   "status",
   "scan",
   "verify",
+  "doctor",
+  "legacy",
   "contract",
   "stop"
 ] as const;
@@ -92,6 +96,156 @@ export function createBoardProgram(options: BoardProgramOptions = {}): Command {
     .option("--config <path>", "set the repository contract path")
     .option("--no-color", "disable terminal colors")
     .option("-V, --version", "output the CLI version");
+
+  program
+    .command("doctor")
+    .description("Diagnose local setup, runtime, verification, and stale workflow problems")
+    .option("--category <category>", "limit diagnostics to a category", collectOptionValue, [])
+    .option("--include-logs", "include bounded redacted log excerpts")
+    .option("--no-runtime", "skip runtime session inspection")
+    .option("--no-docker", "skip Docker and Compose inspection")
+    .option("--no-history", "skip verification history inspection")
+    .option("--dry-run", "preview diagnostic sources without running inspectors")
+    .option("--json", "emit machine-readable JSON output")
+    .action(
+      async (commandOptions: {
+        readonly category?: readonly string[];
+        readonly includeLogs?: boolean;
+        readonly runtime?: boolean;
+        readonly docker?: boolean;
+        readonly history?: boolean;
+        readonly dryRun?: boolean;
+        readonly json?: boolean;
+      }) => {
+        const globals = program.opts<{
+          readonly json?: boolean;
+          readonly quiet?: boolean;
+          readonly verbose?: boolean;
+          readonly cwd?: string;
+          readonly config?: string;
+          readonly color?: boolean;
+        }>();
+        const context = createCommandContext({
+          flags: {
+            ...globals,
+            json: Boolean(commandOptions.json ?? globals.json)
+          }
+        });
+
+        programOptions.onResult?.(
+          await runCommand({
+            command: "doctor",
+            context,
+            handler: () => doctorCommand(context, commandOptions)
+          })
+        );
+      }
+    );
+
+  const legacy = program.command("legacy").description("Review local legacy candidates");
+
+  legacy
+    .command("list")
+    .description("List locally detected legacy candidates")
+    .option("--status <status>", "filter candidates by review status")
+    .option("--confidence <confidence>", "filter candidates by confidence")
+    .option("--json", "emit machine-readable JSON output")
+    .action(
+      async (commandOptions: {
+        readonly status?: string;
+        readonly confidence?: string;
+        readonly json?: boolean;
+      }) => {
+        const globals = program.opts<{
+          readonly json?: boolean;
+          readonly quiet?: boolean;
+          readonly verbose?: boolean;
+          readonly cwd?: string;
+          readonly config?: string;
+          readonly color?: boolean;
+        }>();
+        const context = createCommandContext({
+          flags: {
+            ...globals,
+            json: Boolean(commandOptions.json ?? globals.json)
+          }
+        });
+
+        programOptions.onResult?.(
+          await runCommand({
+            command: "legacy list",
+            context,
+            handler: () => legacyListCommand(context, commandOptions)
+          })
+        );
+      }
+    );
+
+  legacy
+    .command("explain")
+    .description("Explain a locally detected legacy candidate")
+    .argument("<candidate-id>", "legacy candidate id")
+    .option("--json", "emit machine-readable JSON output")
+    .action(async (candidateId: string, commandOptions: { readonly json?: boolean }) => {
+      const globals = program.opts<{
+        readonly json?: boolean;
+        readonly quiet?: boolean;
+        readonly verbose?: boolean;
+        readonly cwd?: string;
+        readonly config?: string;
+        readonly color?: boolean;
+      }>();
+      const context = createCommandContext({
+        flags: {
+          ...globals,
+          json: Boolean(commandOptions.json ?? globals.json)
+        }
+      });
+
+      programOptions.onResult?.(
+        await runCommand({
+          command: "legacy explain",
+          context,
+          handler: () => legacyExplainCommand(context, candidateId)
+        })
+      );
+    });
+
+  legacy
+    .command("review")
+    .description("Update local review metadata for a legacy candidate")
+    .argument("<candidate-id>", "legacy candidate id")
+    .requiredOption("--status <status>", "set the local review status")
+    .option("--note <text>", "append a local reviewer note")
+    .action(
+      async (
+        candidateId: string,
+        commandOptions: {
+          readonly status?: string;
+          readonly note?: string;
+        }
+      ) => {
+        const globals = program.opts<{
+          readonly json?: boolean;
+          readonly quiet?: boolean;
+          readonly verbose?: boolean;
+          readonly cwd?: string;
+          readonly config?: string;
+          readonly color?: boolean;
+        }>();
+        const context = createCommandContext({
+          flags: globals
+        });
+
+        programOptions.onResult?.(
+          await runCommand({
+            command: "legacy review",
+            context,
+            handler: () => legacyReviewCommand(context, candidateId, commandOptions)
+          })
+        );
+      }
+    );
 
   program
     .command("start")

@@ -1,4 +1,5 @@
 import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { dirname, join } from "node:path";
 
 import type {
@@ -137,7 +138,9 @@ export function createJsonDoctorStateStore(
   return {
     paths,
     ensure: async () => {
+      await mkdir(paths.doctorRoot, { recursive: true });
       await mkdir(paths.doctorRunsRoot, { recursive: true });
+      await mkdir(paths.legacyRoot, { recursive: true });
       await mkdir(paths.legacyCandidatesRoot, { recursive: true });
     },
     writeRun: async (run) => {
@@ -331,7 +334,7 @@ async function readJson<T>(path: string, fallback: T): Promise<DoctorStateReadRe
 
 async function writeJson(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
-  const temporaryPath = `${path}.${process.pid}.${Date.now()}.tmp`;
+  const temporaryPath = `${path}.${process.pid}.${randomUUID()}.tmp`;
 
   try {
     await writeFile(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");

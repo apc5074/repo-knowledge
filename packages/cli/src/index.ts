@@ -17,8 +17,16 @@ export {
   resolveContractPathFromContext
 } from "./command-context.js";
 export { validateContractCommand } from "./commands/contract/validate.js";
+export { doctorCommand } from "./commands/doctor.js";
+export type { DoctorCommandOptions } from "./commands/doctor.js";
 export { initCommand } from "./commands/init.js";
 export type { InitCommandData, InitCommandOptions } from "./commands/init.js";
+export { legacyExplainCommand, legacyListCommand, legacyReviewCommand } from "./commands/legacy.js";
+export type {
+  LegacyExplainCommandOptions,
+  LegacyListCommandOptions,
+  LegacyReviewCommandOptions
+} from "./commands/legacy.js";
 export { scanCommand } from "./commands/scan.js";
 export type { ScanCommandData, ScanCommandOptions } from "./commands/scan.js";
 export { startCommand } from "./commands/start.js";

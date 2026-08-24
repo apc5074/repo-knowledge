@@ -1,0 +1,18 @@
+version: 1
+repository:
+  name: doctor-false-positives
+  type: service
+  primary_language: typescript
+applications:
+  api:
+    id: api
+    type: api
+    working_directory: src
+verification:
+  default:
+    - id: test
+      kind: unit
+      command:
+        command: pnpm
+        args:
+          - test

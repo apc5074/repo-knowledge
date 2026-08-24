@@ -1,0 +1,72 @@
+version: 1
+repository:
+  name: doctor-all-categories
+  type: service
+  primary_language: typescript
+applications:
+  api:
+    id: api
+    type: api
+    working_directory: apps/api
+    ports:
+      - 3000
+    environment:
+      - DATABASE_URL
+services:
+  postgres:
+    id: postgres
+    type: postgresql
+    compose_service: postgres
+    ports:
+      - 5432
+    environment:
+      - DATABASE_URL
+environment:
+  DATABASE_URL:
+    name: DATABASE_URL
+    required: true
+    secret: true
+setup:
+  install:
+    command: pnpm
+    args:
+      - install
+  migrate:
+    command: pnpm
+    args:
+      - db:migrate
+verification:
+  default:
+    - id: typecheck
+      kind: typecheck
+      command:
+        command: pnpm
+        args:
+          - typecheck
+      paths:
+        - src/**
+    - id: stale-docs
+      kind: smoke
+      command:
+        command: pnpm
+        args:
+          - docs:stale
+      paths:
+        - missing-docs/**
+generated_files:
+  - pattern: src/generated/**
+    source_paths:
+      - schema/openapi.yaml
+    generated_by:
+      command: pnpm
+      args:
+        - generate
+source_of_truth_paths:
+  - pattern: schema/openapi.yaml
+    governs:
+      - src/generated/**
+known_limitations:
+  - id: fixture-local-only
+    summary: Fixture intentionally contains local-only diagnostic failures.
+    impact: Used by doctor-runtime tests only.
+    status: accepted

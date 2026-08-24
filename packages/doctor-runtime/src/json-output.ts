@@ -50,14 +50,19 @@ export type SerializeDoctorJsonInput = {
   readonly report: DoctorReport | DoctorRun | DiagnosticEngineResult;
   readonly statePaths?: DoctorJsonStatePaths;
   readonly enabledInspectors?: readonly string[];
+  readonly skippedInspectors?: readonly {
+    readonly name: string;
+    readonly reason: string;
+  }[];
 };
 
 export function serializeDoctorToJson(input: SerializeDoctorJsonInput): DoctorJsonOutput {
   const run = runFromReport(input.report);
   const skippedInspectors =
-    "run" in input.report && "skippedInspectors" in input.report
+    input.skippedInspectors ??
+    ("run" in input.report && "skippedInspectors" in input.report
       ? input.report.skippedInspectors
-      : [];
+      : []);
 
   return stripUndefined({
     schema_version: 1,

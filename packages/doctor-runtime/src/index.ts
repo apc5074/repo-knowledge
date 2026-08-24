@@ -19,6 +19,10 @@ export type {
   DiagnosticInspectorOutput,
   RunDiagnosticEngineInput
 } from "./diagnostic-engine.js";
+export { runDoctor } from "./doctor-runner.js";
+export type { RunDoctorInput, RunDoctorResult } from "./doctor-runner.js";
+export { runDoctorAgentTool } from "./agent-tool.js";
+export type { DoctorAgentToolRunRecord, RunDoctorAgentToolInput } from "./agent-tool.js";
 export {
   defaultDoctorContractPath,
   loadDoctorRepositoryContext,

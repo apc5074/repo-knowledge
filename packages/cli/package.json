@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@repo-knowledge/bootstrap-runtime": "workspace:*",
+    "@repo-knowledge/doctor-runtime": "workspace:*",
     "@repo-knowledge/init-core": "workspace:*",
     "@repo-knowledge/repository-contract": "workspace:*",
     "@repo-knowledge/scanner-core": "workspace:*",

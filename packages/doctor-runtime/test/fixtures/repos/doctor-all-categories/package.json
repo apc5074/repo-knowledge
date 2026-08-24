@@ -1,0 +1,12 @@
+{
+  "name": "doctor-all-categories",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "legacy:test": "node old-test.js",
+    "docs:stale": "node missing-docs/check.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

@@ -89,6 +89,9 @@ importers:
       '@repo-knowledge/bootstrap-runtime':
         specifier: workspace:*
         version: link:../bootstrap-runtime
+      '@repo-knowledge/doctor-runtime':
+        specifier: workspace:*
+        version: link:../doctor-runtime
       '@repo-knowledge/init-core':
         specifier: workspace:*
         version: link:../init-core
