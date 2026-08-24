@@ -1,3 +1,24 @@
+export { createDiagnosticFinding, runDiagnosticRules } from "./diagnostic-rule.js";
+export type {
+  DiagnosticRule,
+  DiagnosticRuleContext,
+  DiagnosticRuleExecutionResult,
+  DiagnosticRulePrerequisite,
+  DiagnosticRuleRunResult,
+  DiagnosticRuleSkip,
+  DiagnosticRuleWarning,
+  RepositoryReference,
+  RepositoryReferenceInventory,
+  RunDiagnosticRulesInput
+} from "./diagnostic-rule.js";
+export { runDiagnosticEngine } from "./diagnostic-engine.js";
+export type {
+  DiagnosticEngineResult,
+  DiagnosticInspector,
+  DiagnosticInspectorName,
+  DiagnosticInspectorOutput,
+  RunDiagnosticEngineInput
+} from "./diagnostic-engine.js";
 export {
   defaultDoctorContractPath,
   loadDoctorRepositoryContext,
@@ -10,6 +31,13 @@ export type {
   GitCommandRunner,
   LoadDoctorRepositoryContextInput
 } from "./contract-loader.js";
+export {
+  contractCommandReferenceRule,
+  contractLoaderFindingRule,
+  contractPathReferenceRule,
+  createContractReferenceDiagnosticRules,
+  documentationReferenceRule
+} from "./contract-rules.js";
 export { inspectDocker, parseDockerPsJson } from "./docker-inspector.js";
 export type {
   DockerCommandResult,
@@ -20,6 +48,23 @@ export type {
   DockerObservationKind,
   InspectDockerInput
 } from "./docker-inspector.js";
+export { createDockerDiagnosticRules, dockerObservationRule } from "./docker-rules.js";
+export {
+  createEnvironmentDiagnosticRules,
+  environmentToolRule,
+  environmentVariableRule,
+  expectedFileRule
+} from "./environment-rules.js";
+export {
+  createBoundedDoctorLogText,
+  createRedactedLogEvidence,
+  redactDoctorLog
+} from "./log-redaction.js";
+export type { RedactDoctorLogInput, RedactedDiagnosticLog } from "./log-redaction.js";
+export { createKnownProblemStore, fingerprintFinding } from "./known-problem-store.js";
+export type { KnownProblemStore } from "./known-problem-store.js";
+export { attachKnownProblemMatches, matchKnownProblems } from "./known-problem-matcher.js";
+export type { MatchKnownProblemsInput } from "./known-problem-matcher.js";
 export {
   collectLocalToolRequirements,
   inspectLocalEnvironment,
@@ -46,6 +91,17 @@ export type {
   RuntimeSessionObservation,
   RuntimeSessionObservationKind
 } from "./runtime-inspector.js";
+export {
+  createRuntimeFailureDiagnosticRules,
+  repeatedRuntimeFailureRule,
+  runtimeObservationRule
+} from "./runtime-rules.js";
+export { createResolutionStore, hasDirectResolutionEvidence } from "./resolution-store.js";
+export type {
+  RecordResolutionInput,
+  ResolutionStore,
+  ResolveKnownProblemInput
+} from "./resolution-store.js";
 export { collectExpectedPorts, inspectPorts } from "./port-inspector.js";
 export type {
   ExpectedPort,
@@ -58,6 +114,12 @@ export type {
   PortOwnerKind,
   PortStatus
 } from "./port-inspector.js";
+export {
+  createPortDiagnosticRules,
+  duplicateContractPortRule,
+  portObservationRule,
+  staleBoardPortRule
+} from "./port-rules.js";
 export {
   createJsonDoctorStateStore,
   DoctorStateStoreError,
@@ -109,6 +171,11 @@ export type {
   VerificationObservation,
   VerificationObservationKind
 } from "./verification-inspector.js";
+export {
+  createVerificationDiagnosticRules,
+  verificationObservationRule,
+  verificationStaleConfigRule
+} from "./verification-rules.js";
 
 export const doctorRuntimePackage = {
   name: "@repo-knowledge/doctor-runtime",

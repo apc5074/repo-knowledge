@@ -112,6 +112,8 @@ export type KnownProblemRecord = {
   readonly lastSeenAt: string;
   readonly occurrenceCount: number;
   readonly findingIds: readonly string[];
+  readonly targetIds?: readonly string[];
+  readonly notes?: readonly string[];
   readonly evidence: readonly DiagnosticEvidence[];
   readonly counterEvidence: readonly DiagnosticEvidence[];
   readonly suggestedNextSteps: readonly string[];
