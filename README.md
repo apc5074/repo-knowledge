@@ -49,20 +49,29 @@ Search is hybrid: lexical search, symbol lookup, import graph traversal, route/s
 
 The result is that agents do not need to rediscover the repo every session. They get a compact, evidence-backed slice of the codebase that is relevant to the task in front of them.
 
-## Agent Shape
+## Agent Registry
 
-Board is planned around specialized maintenance agents:
+Agents, tools, memory records, policies, and approvals should have one standard place to be defined so they are easy to reuse later.
 
-- **Scanner Agent**: finds deterministic repo facts
-- **Contract Agent**: proposes contract updates
-- **Bootstrap Agent**: proves the repo can start
-- **Verification Agent**: picks and runs relevant checks
-- **Documentation Agent**: keeps onboarding and architecture docs fresh
-- **Skill Agent**: creates repo-specific agent skills from real code patterns
-- **Legacy Agent**: marks deprecated or likely-unused areas for review
-- **Context Agent**: builds task packets for humans and coding agents
-- **PR Agent**: turns maintenance work into reviewable PRs
-- **Policy/Safety Agent**: keeps tools, files, secrets, and approvals bounded
+- `packages/types`: shared agent IDs, run records, memory shapes, tool schemas, evidence, and policy types
+- `packages/agent-orchestrator`: the TypeScript-facing registry for agent definitions, run metadata, and orchestration contracts
+- `packages/agent-tools`: safe tools agents can call, like scan, read facts, retrieve context, run approved checks, and propose diffs
+- `packages/agent-memory`: typed repo memory, known decisions, false positives, accepted patterns, and review state
+- `packages/policy` and `packages/approvals`: rules for what agents can do and when humans need to approve
+- `python/agent-worker/workflows`: LangGraph workflows for the heavier maintenance-agent runs
+
+Examples we expect to register:
+
+- **Scanner Agent**: repo facts
+- **Contract Agent**: repo contract updates
+- **Bootstrap Agent**: startup proof
+- **Verification Agent**: relevant checks
+- **Documentation Agent**: docs and diagrams
+- **Skill Agent**: repo-specific skills
+- **Legacy Agent**: legacy code review
+- **Context Agent**: task context
+- **PR Agent**: reviewable PRs
+- **Policy/Safety Agent**: tool and approval rules
 
 ## Tech Stack
 

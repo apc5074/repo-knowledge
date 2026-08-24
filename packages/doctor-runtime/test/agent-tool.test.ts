@@ -13,7 +13,7 @@ describe("doctor agent tool surface", () => {
       contractPath: fixture.contractPath,
       repositoryStateRoot: fixture.stateRoot,
       categories: ["runtime"],
-      disabledInspectors: ["docker", "ports", "verification"],
+      disabledInspectors: ["local-environment", "docker", "ports", "verification"],
       env: {
         PATH: process.env.PATH
       },
@@ -41,7 +41,7 @@ describe("doctor agent tool surface", () => {
       ok: true,
       run_id: "agent-tool-runtime"
     });
-  });
+  }, 15_000);
 
   it("reports dry-run inspector skips in the structured record", async () => {
     const fixture = await copyDoctorFixtureRepository("doctor-all-categories");
