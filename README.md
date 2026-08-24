@@ -6,7 +6,7 @@ The agents will make any codebase easier for humans/agents to understand, run, a
 
 Still early dev, but want to target problems of ai coded services that get to 100k+ LOC
 
-## What It Is Trying To Become
+## Final Goal
 
 Board should be able to:
 
@@ -19,16 +19,35 @@ Board should be able to:
 
 Want to make coding agents job as easy as possible - slim down ai gen code + real time context on logic
 
-## What Exists So Far
+## Repo As Context
 
-Currently done:
+The main idea is simple: do not treat a repo like one giant prompt.
 
-- a TypeScript/Python monorepo with the main packages split out
-- early package boundaries for the CLI, scanner, MCP server, API, worker, web app, agent orchestration, tools, memory, policy, and approvals
-- a Python worker placeholder for the future agent workflows
-- a repository contract package with the schemas, YAML parsing, validation, migrations, fixtures, examples, and tests
-- contract models for apps, services, setup, verification, environment variables, generated/sensitive/unsafe paths, related systems, and known limitations
-- detailed implementation plans for the CLI and the deterministic scanner
+Board turns the repo into structured data first. The scanner walks the codebase and records facts like package scripts, entry points, services, env vars, routes, tests, generated files, schemas, migrations, docs, and unsafe paths. Each fact keeps where it came from: file, lines, detector, commit SHA, confidence, and verification status.
+
+Then we build a graph on top of those facts. Files connect to symbols, symbols connect to routes, routes connect to tests, services connect to env vars, schemas connect to generated clients, and migrations connect to data models. That gives agents a map instead of a pile of files.
+
+Memory is also structured:
+
+- **Run memory**: temporary state for one agent run, like what tools were called, what files were read, and what still needs approval.
+- **Repo memory**: durable knowledge for one repository, like accepted setup steps, known problems, reviewed legacy findings, repo-specific coding patterns, and false positives that should not be repeated.
+- **Organization memory**: shared knowledge across repos, like related services, API consumers, deprecated shared packages, ownership, and cross-repo known problems.
+
+The goal is not to save chat transcripts. It is to save useful repo knowledge with evidence and review state. If Board once thought a file was unused and a maintainer rejected that because it is loaded dynamically, that becomes memory the next agent can use.
+
+When Codex, Claude, or another coding agent asks for context through MCP, Board sends a small task packet:
+
+- what the task likely touches
+- the files, symbols, routes, and schemas that matter
+- similar implementations
+- request, event, or data flow if we can trace it
+- generated or risky files to avoid
+- tests and validation commands
+- known problems, legacy notes, and repo-specific skills
+
+Search is hybrid: lexical search, symbol lookup, import graph traversal, route/schema matching, test relationships, known problems, accepted skills, and embeddings. Embeddings help find candidates, but they are not proof. Important claims still point back to source evidence.
+
+The result is that agents do not need to rediscover the repo every session. They get a compact, evidence-backed slice of the codebase that is relevant to the task in front of them.
 
 ## Agent Shape
 
