@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "@repo-knowledge/bootstrap-runtime": "workspace:*",
-    "@repo-knowledge/verification-runtime": "workspace:*",
-    "@repo-knowledge/repository-contract": "workspace:*"
+    "@repo-knowledge/repository-contract": "workspace:*",
+    "@repo-knowledge/scanner-core": "workspace:*",
+    "@repo-knowledge/verification-runtime": "workspace:*"
   }
 }

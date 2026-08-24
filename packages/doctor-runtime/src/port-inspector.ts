@@ -185,7 +185,7 @@ function portKey(port: ExpectedPort): string {
   return `${port.host}:${port.port}`;
 }
 
-async function defaultPortChecker(_port: ExpectedPort): Promise<{
+async function defaultPortChecker(): Promise<{
   readonly status: PortStatus;
 }> {
   return {

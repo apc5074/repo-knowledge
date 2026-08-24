@@ -65,6 +65,20 @@ export { createKnownProblemStore, fingerprintFinding } from "./known-problem-sto
 export type { KnownProblemStore } from "./known-problem-store.js";
 export { attachKnownProblemMatches, matchKnownProblems } from "./known-problem-matcher.js";
 export type { MatchKnownProblemsInput } from "./known-problem-matcher.js";
+export { createLegacyCandidateStore, stableLegacyCandidateId } from "./legacy-candidate-store.js";
+export type { LegacyCandidateStore } from "./legacy-candidate-store.js";
+export { importLegacyCandidatesFromScannerFacts } from "./legacy-candidate-matcher.js";
+export type {
+  ImportLegacyCandidatesInput,
+  ImportLegacyCandidatesResult
+} from "./legacy-candidate-matcher.js";
+export { serializeDoctorToJson, stringifyDoctorJson } from "./json-output.js";
+export type {
+  DoctorJsonOutput,
+  DoctorJsonStatePaths,
+  LegacyCandidateSummary,
+  SerializeDoctorJsonInput
+} from "./json-output.js";
 export {
   collectLocalToolRequirements,
   inspectLocalEnvironment,
@@ -96,6 +110,8 @@ export {
   repeatedRuntimeFailureRule,
   runtimeObservationRule
 } from "./runtime-rules.js";
+export { formatHumanDoctorReport } from "./reports.js";
+export type { HumanDoctorReport, HumanDoctorReportOptions } from "./reports.js";
 export { createResolutionStore, hasDirectResolutionEvidence } from "./resolution-store.js";
 export type {
   RecordResolutionInput,
@@ -120,6 +136,11 @@ export {
   portObservationRule,
   staleBoardPortRule
 } from "./port-rules.js";
+export { matchStaleWorkflowCandidates } from "./stale-workflow-matcher.js";
+export type {
+  StaleWorkflowMatchInput,
+  StaleWorkflowMatchResult
+} from "./stale-workflow-matcher.js";
 export {
   createJsonDoctorStateStore,
   DoctorStateStoreError,
