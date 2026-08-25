@@ -156,6 +156,21 @@ importers:
         specifier: ^4.1.13
         version: 4.4.3
 
+  packages/repository-graph:
+    dependencies:
+      '@repo-knowledge/doctor-runtime':
+        specifier: workspace:*
+        version: link:../doctor-runtime
+      '@repo-knowledge/repository-contract':
+        specifier: workspace:*
+        version: link:../repository-contract
+      '@repo-knowledge/scanner-core':
+        specifier: workspace:*
+        version: link:../scanner-core
+      '@repo-knowledge/verification-runtime':
+        specifier: workspace:*
+        version: link:../verification-runtime
+
   packages/scanner:
     dependencies:
       '@repo-knowledge/scanner-core':
