@@ -125,5 +125,11 @@ The package exports the typed graph model and stores, plus:
 - `ingestRepositoryContract` and `ingestScannerFacts`, which convert supported contract records and scanner facts into evidence-backed graph records. Unsupported facts are intentionally skipped rather than inferred.
 - `buildStructuralGraph`, which turns the scanner-filtered inventory into repository, directory, file, package, and workspace records with file fingerprints.
 - `buildRuntimeUnitGraph`, which connects contract applications and services, plus scanner-detected applications and workers, to their supported files and commands.
+- `indexTypeScriptSymbols` and `indexTypeScriptImports`, which use the TypeScript compiler parser for supported TS/JS files and preserve source locations, unresolved-import warnings, and conservative local/workspace relationships.
+- `indexPythonSymbols` and `indexPythonImports`, which build on scanner-core Python source analysis and conservatively index direct function/class declarations plus resolvable absolute and relative local imports.
+- `buildRouteIndex` and `buildRequestFlow`, which use scanner route facts as the source of truth, connect supported handlers and runtime units, and record only direct calls to locally imported targets.
+- `buildWorkerFlow` and `buildDatabaseAccess`, which model scanner-detected worker queues and commands, database dependencies, migration/seed paths, and direct Prisma, SQLAlchemy, or simple SQL reads and writes.
+- `buildTestRelations` and `buildGeneratedPathGraph`, which distinguish import-backed test links from filename-only links and model only scanner- or contract-supported generated/unsafe paths.
+- `buildReferenceIndex` and `ingestDoctorRecords`, which index structured command, CI, verification, and document references alongside read-only snapshots of known problems and legacy candidates.
 
 Graph construction, structural file nodes, language indexes, queries, and explanations remain later Phase 8 work.

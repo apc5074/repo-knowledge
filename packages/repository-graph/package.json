@@ -22,6 +22,7 @@
     "@repo-knowledge/doctor-runtime": "workspace:*",
     "@repo-knowledge/repository-contract": "workspace:*",
     "@repo-knowledge/scanner-core": "workspace:*",
-    "@repo-knowledge/verification-runtime": "workspace:*"
+    "@repo-knowledge/verification-runtime": "workspace:*",
+    "typescript": "^5.8.0"
   }
 }

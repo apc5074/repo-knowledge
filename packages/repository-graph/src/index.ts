@@ -57,6 +57,23 @@ export type { GraphIngestResult } from "./contract-ingest.js";
 export { ingestScannerFacts } from "./scanner-fact-ingest.js";
 export { buildStructuralGraph } from "./structural-nodes.js";
 export { buildRuntimeUnitGraph } from "./runtime-nodes.js";
+export { indexTypeScriptImports, indexTypeScriptSymbols } from "./typescript-index.js";
+export type { TypeScriptIndexInput } from "./typescript-index.js";
+export { indexPythonImports, indexPythonSymbols } from "./python-index.js";
+export type { PythonIndexInput } from "./python-index.js";
+export { buildRouteIndex } from "./route-index.js";
+export type { RouteIndexInput } from "./route-index.js";
+export { buildRequestFlow } from "./request-flow.js";
+export type { RequestFlowInput } from "./request-flow.js";
+export { buildWorkerFlow } from "./worker-flow.js";
+export { buildDatabaseAccess } from "./database-access.js";
+export type { DatabaseAccessInput } from "./database-access.js";
+export { buildTestRelations } from "./test-relations.js";
+export type { TestRelationsInput } from "./test-relations.js";
+export { buildGeneratedPathGraph } from "./generated-paths.js";
+export { buildReferenceIndex } from "./reference-index.js";
+export type { ReferenceIndexInput } from "./reference-index.js";
+export { ingestDoctorRecords } from "./doctor-ingest.js";
 
 import type {
   BuildRepositoryGraphInput,
