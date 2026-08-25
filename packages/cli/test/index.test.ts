@@ -45,6 +45,7 @@ describe("@repo-knowledge/cli", () => {
       "scan",
       "verify",
       "doctor",
+      "graph",
       "legacy",
       "contract",
       "stop"

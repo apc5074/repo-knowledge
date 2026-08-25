@@ -97,6 +97,46 @@ describe("usage evidence and legacy explanations", () => {
     expect(usage.evidence[0]?.summary).toBe("Active import evidence");
     expect(usage.counterEvidenceEdges[0]?.kind).toBe("has_counter_evidence");
   });
+  it("records weak and strong usage sources without promoting a weak signal to high confidence", () => {
+    const relationshipKinds = [
+      ["public-export", "exports", "low"],
+      ["route", "handles_route", "high"],
+      ["test", "tests", "medium"],
+      ["command", "runs", "high"],
+      ["verification", "verifies", "confirmed"],
+      ["ci", "references", "medium"],
+      ["documentation", "documents", "low"]
+    ] as const;
+    const usage = aggregateUsageEvidence({
+      ...snapshot,
+      edges: [
+        ...snapshot.edges.filter((edge) => edge.id !== "import"),
+        ...relationshipKinds.map(([id, kind, confidence]) => ({
+          id,
+          sourceNodeId: "consumer",
+          targetNodeId: "target",
+          kind,
+          confidence,
+          evidenceIds: [],
+          extractorId: "test",
+          firstObservedBuildId: "build-1",
+          lastObservedBuildId: "build-1"
+        }))
+      ]
+    });
+
+    expect(usage.signals.map((signal) => [signal.kind, signal.confidence])).toEqual([
+      ["public_export", "low"],
+      ["route", "high"],
+      ["test", "medium"],
+      ["command", "high"],
+      ["verification", "confirmed"],
+      ["ci", "medium"],
+      ["documentation", "low"]
+    ]);
+    expect(usage.counterEvidenceEdges).toHaveLength(1);
+    expect(usage.counterEvidenceEdges[0]?.confidence).toBe("low");
+  });
   it("explains confidence, named signals, active use, replacement, and reviewed status without deletion advice", () => {
     const explanation = explainLegacyCandidate({
       snapshot,

@@ -8,7 +8,15 @@ import {
 
 export type GraphUsageSignal = {
   readonly targetNodeId: string;
-  readonly kind: "import" | "route" | "test" | "command" | "verification" | "ci" | "documentation";
+  readonly kind:
+    | "import"
+    | "public_export"
+    | "route"
+    | "test"
+    | "command"
+    | "verification"
+    | "ci"
+    | "documentation";
   readonly edgeId: string;
   readonly confidence: GraphEdge["confidence"];
 };
@@ -70,6 +78,7 @@ export function aggregateUsageEvidence(
 }
 function signalKind(kind: GraphEdge["kind"]): GraphUsageSignal["kind"] | undefined {
   if (kind === "imports") return "import";
+  if (kind === "exports") return "public_export";
   if (kind === "handles_route") return "route";
   if (kind === "tests") return "test";
   if (kind === "runs") return "command";

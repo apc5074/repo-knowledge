@@ -15,6 +15,8 @@
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
     "test": "vitest run",
+    "test:legacy-evidence": "vitest run test/usage-legacy-explanations.test.ts test/reference-doctor-ingest.test.ts",
+    "test:relationships": "vitest run test/typescript-index.test.ts test/python-index.test.ts test/route-request-flow.test.ts test/worker-database-flow.test.ts test/test-generated-paths.test.ts",
     "test:watch": "vitest --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

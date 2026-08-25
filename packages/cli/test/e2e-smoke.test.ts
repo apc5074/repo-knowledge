@@ -34,21 +34,19 @@ describe("board CLI E2E smoke tests", () => {
   it("prints help from the built entrypoint", async () => {
     const result = await runBuiltBoard(["--help"]);
 
-    expect(result).toMatchObject({
-      exitCode: 0,
-      stderr: ""
-    });
+    expect(result.exitCode).toBe(0);
+    expectNoApplicationStderr(result);
     expect(result.stdout).toContain("Usage: board");
     expect(result.stdout).toContain("status");
     expect(result.stdout).toContain("contract");
   });
 
   it("prints version from the built entrypoint", async () => {
-    await expect(runBuiltBoard(["--version"])).resolves.toEqual({
-      exitCode: 0,
-      stdout: "0.0.0",
-      stderr: ""
-    });
+    const result = await runBuiltBoard(["--version"]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toBe("0.0.0");
+    expectNoApplicationStderr(result);
   });
 
   it("reports repository status as JSON from the built entrypoint", async () => {
@@ -59,7 +57,7 @@ describe("board CLI E2E smoke tests", () => {
     const result = await runBuiltBoard(["--json", "--cwd", fixture.root, "status"]);
 
     expect(result.exitCode).toBe(0);
-    expect(result.stderr).toBe("");
+    expectNoApplicationStderr(result);
     expect(JSON.parse(result.stdout)).toMatchObject({
       ok: true,
       command: "status",
@@ -80,11 +78,11 @@ describe("board CLI E2E smoke tests", () => {
       contract: "valid"
     });
 
-    await expect(runBuiltBoard(["contract", "validate", fixture.contractPath])).resolves.toEqual({
-      exitCode: 0,
-      stdout: `Valid repository contract: ${fixture.contractPath}`,
-      stderr: ""
-    });
+    const result = await runBuiltBoard(["contract", "validate", fixture.contractPath]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toBe(`Valid repository contract: ${fixture.contractPath}`);
+    expectNoApplicationStderr(result);
   });
 
   it("fails clearly for unknown commands from the built entrypoint", async () => {
@@ -132,4 +130,17 @@ function isExecError(
     "stderr" in error &&
     typeof error.stderr === "string"
   );
+}
+
+function expectNoApplicationStderr(result: ProcessResult): void {
+  expect(stripKnownNodeRuntimeWarnings(result.stderr)).toBe("");
+}
+
+function stripKnownNodeRuntimeWarnings(stderr: string): string {
+  return stderr
+    .replace(
+      /^\(node:\d+\) ExperimentalWarning: SQLite is an experimental feature and might change at any time\n\(Use `node --trace-warnings \.\.\.` to show where the warning was created\)$/,
+      ""
+    )
+    .trim();
 }
