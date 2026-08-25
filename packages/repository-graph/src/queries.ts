@@ -43,15 +43,13 @@ export async function queryGraphRelationships(
       warnings: [`Graph target not found: ${input.target}.`]
     };
   const traversals = await Promise.all(
-    starts
-      .slice(0, input.limit ?? 25)
-      .map((node) =>
-        store.traverse({
-          startNodeId: node.id,
-          direction: "both",
-          maxDepth: Math.min(input.depth ?? 1, 6)
-        })
-      )
+    starts.slice(0, input.limit ?? 25).map((node) =>
+      store.traverse({
+        startNodeId: node.id,
+        direction: "both",
+        maxDepth: Math.min(input.depth ?? 1, 6)
+      })
+    )
   );
   const nodes = [
     ...new Map(

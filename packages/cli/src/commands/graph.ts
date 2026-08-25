@@ -23,6 +23,7 @@ export async function graphBuildCommand(
   context: CommandContext,
   options: { readonly force?: boolean; readonly changed?: boolean }
 ): Promise<CommandResult> {
+  void options;
   const root = await context.repositoryRoot();
   if (!root.ok) return missing(context, "graph build", root.message);
   const snapshot = await buildLocalRepositoryGraph({ repositoryRoot: root.root });
