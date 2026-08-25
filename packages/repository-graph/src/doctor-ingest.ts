@@ -70,7 +70,9 @@ function addCandidate(
     {
       status: candidate.status,
       confidence: candidate.confidence,
-      reviewAction: candidate.suggestedReviewAction
+      reviewAction: candidate.suggestedReviewAction,
+      signalTypes: candidate.signalTypes.join(","),
+      replacementHints: candidate.replacementHints.join(",")
     }
   );
   const targetNode = targetFor(

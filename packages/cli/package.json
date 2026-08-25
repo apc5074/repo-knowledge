@@ -26,6 +26,7 @@
     "@repo-knowledge/doctor-runtime": "workspace:*",
     "@repo-knowledge/init-core": "workspace:*",
     "@repo-knowledge/repository-contract": "workspace:*",
+    "@repo-knowledge/repository-graph": "workspace:*",
     "@repo-knowledge/scanner-core": "workspace:*",
     "@repo-knowledge/verification-runtime": "workspace:*",
     "commander": "^15.0.0"

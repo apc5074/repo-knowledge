@@ -4,6 +4,8 @@ export const repositoryGraphPackage = {
   phase: "phase-8-repository-graph"
 } as const;
 
+import { buildLocalRepositoryGraph } from "./graph-builder.js";
+
 export type RepositoryGraphPackage = typeof repositoryGraphPackage;
 
 export {
@@ -74,6 +76,38 @@ export { buildGeneratedPathGraph } from "./generated-paths.js";
 export { buildReferenceIndex } from "./reference-index.js";
 export type { ReferenceIndexInput } from "./reference-index.js";
 export { ingestDoctorRecords } from "./doctor-ingest.js";
+export { aggregateUsageEvidence } from "./usage-evidence.js";
+export type { GraphUsageAggregation, GraphUsageSignal } from "./usage-evidence.js";
+export { explainLegacyCandidate } from "./legacy-explanations.js";
+export { planGraphInvalidation } from "./invalidation.js";
+export type { GraphInvalidationPlan } from "./invalidation.js";
+export {
+  findGraphNodes,
+  queryGraphRelationships,
+  queryLegacyCandidates,
+  queryRelatedCommands,
+  queryRelatedDocs,
+  queryRelatedTests,
+  queryUnsafeGraphStatus,
+  queryUsageEvidence
+} from "./queries.js";
+export type { GraphQueryOptions } from "./queries.js";
+export { explainGraphTarget } from "./explanations.js";
+export type { GraphExplanationResult } from "./explanations.js";
+export {
+  formatGraphBuildReport,
+  formatGraphExplanationReport,
+  formatGraphRelatedReport,
+  formatGraphStatusReport
+} from "./reports.js";
+export { buildLocalRepositoryGraph } from "./graph-builder.js";
+export {
+  graphBuildJson,
+  graphExplanationJson,
+  graphQueryJson,
+  graphStatusJson,
+  repositoryGraphJsonSchemaVersion
+} from "./json-output.js";
 
 import type {
   BuildRepositoryGraphInput,
@@ -111,9 +145,16 @@ export const repositoryGraphBoundary = {
   ]
 } as const;
 
-export function buildRepositoryGraph(input?: BuildRepositoryGraphInput): Promise<never>;
-export async function buildRepositoryGraph(): Promise<never> {
-  throw new Error("Repository graph build is not implemented until later Phase 8 tickets.");
+export function buildRepositoryGraph(
+  input?: BuildRepositoryGraphInput
+): Promise<import("./graph-store.js").GraphSnapshot>;
+export async function buildRepositoryGraph(
+  input: BuildRepositoryGraphInput = {}
+): Promise<import("./graph-store.js").GraphSnapshot> {
+  return buildLocalRepositoryGraph({
+    repositoryRoot: input.repositoryRoot ?? process.cwd(),
+    repositoryStateRoot: input.repositoryStateRoot
+  });
 }
 
 export function queryRepositoryGraph(input: QueryRepositoryGraphInput): Promise<never>;

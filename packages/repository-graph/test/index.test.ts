@@ -52,8 +52,8 @@ describe("@repo-knowledge/repository-graph", () => {
     expect(repositoryGraphBoundary.doesNotOwn).toContain("source mutation");
   });
 
-  it("exposes placeholder build, query, and explanation APIs until later tickets land", async () => {
-    await expect(buildRepositoryGraph()).rejects.toThrow(/not implemented/i);
+  it("exposes build, query, and explanation APIs", async () => {
+    expect(buildRepositoryGraph).toBeTypeOf("function");
     await expect(queryRepositoryGraph({ target: "src/index.ts" })).rejects.toThrow(
       /not implemented/i
     );

@@ -98,15 +98,15 @@ importers:
       '@repo-knowledge/repository-contract':
         specifier: workspace:*
         version: link:../repository-contract
+      '@repo-knowledge/repository-graph':
+        specifier: workspace:*
+        version: link:../repository-graph
       '@repo-knowledge/scanner-core':
         specifier: workspace:*
         version: link:../scanner-core
       '@repo-knowledge/verification-runtime':
         specifier: workspace:*
         version: link:../verification-runtime
-      typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
       commander:
         specifier: ^15.0.0
         version: 15.0.0
@@ -173,6 +173,9 @@ importers:
       '@repo-knowledge/verification-runtime':
         specifier: workspace:*
         version: link:../verification-runtime
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
 
   packages/scanner:
     dependencies:

@@ -139,15 +139,19 @@ Command tests should prefer the in-process harness in `test/harness.ts`. It can 
 
 ## Commands
 
-| Command                   | Behavior                                                                          |
-| ------------------------- | --------------------------------------------------------------------------------- |
-| `board init`              | Previews or writes the initial `.board/repository.yaml` proposal.                 |
-| `board start`             | Starts local repo services/apps declared in the repository contract.              |
-| `board status`            | Reports repository discovery, contract state, local state paths, and CLI version. |
-| `board scan`              | Runs deterministic scanner and prints human or JSON scan output.                  |
-| `board verify`            | Runs contract-defined verification checks selected by Git changes or flags.       |
-| `board stop`              | Stops local Board-managed runtime resources.                                      |
-| `board contract validate` | Implemented thin shell using the repository contract parser.                      |
+| Command                        | Behavior                                                                          |
+| ------------------------------ | --------------------------------------------------------------------------------- |
+| `board init`                   | Previews or writes the initial `.board/repository.yaml` proposal.                 |
+| `board start`                  | Starts local repo services/apps declared in the repository contract.              |
+| `board status`                 | Reports repository discovery, contract state, local state paths, and CLI version. |
+| `board scan`                   | Runs deterministic scanner and prints human or JSON scan output.                  |
+| `board verify`                 | Runs contract-defined verification checks selected by Git changes or flags.       |
+| `board stop`                   | Stops local Board-managed runtime resources.                                      |
+| `board contract validate`      | Implemented thin shell using the repository contract parser.                      |
+| `board graph build`            | Builds the local repository graph under `.board/state/graph`.                     |
+| `board graph status`           | Reports whether a local graph build is available.                                 |
+| `board graph related <target>` | Lists bounded graph relationships for a target.                                   |
+| `board graph explain <target>` | Returns an evidence-backed graph explanation.                                     |
 
 Common commands:
 

@@ -5,6 +5,12 @@ import { Command, CommanderError } from "commander";
 import { createCommandContext, createCommandContextFromCommand } from "./command-context.js";
 import { validateContractCommand } from "./commands/contract/validate.js";
 import { doctorCommand } from "./commands/doctor.js";
+import {
+  graphBuildCommand,
+  graphExplainCommand,
+  graphRelatedCommand,
+  graphStatusCommand
+} from "./commands/graph.js";
 import { initCommand } from "./commands/init.js";
 import { legacyExplainCommand, legacyListCommand, legacyReviewCommand } from "./commands/legacy.js";
 import { scanCommand } from "./commands/scan.js";
@@ -29,6 +35,7 @@ export const boardCommands = [
   "scan",
   "verify",
   "doctor",
+  "graph",
   "legacy",
   "contract",
   "stop"
@@ -379,6 +386,61 @@ export function createBoardProgram(options: BoardProgramOptions = {}): Command {
       );
     });
 
+  const graph = program.command("graph").description("Build and query the local repository graph");
+  graph
+    .command("build")
+    .option("--force", "rebuild the graph")
+    .option("--changed", "request a changed-file rebuild")
+    .option("--json", "emit machine-readable JSON output")
+    .action(
+      async (options: {
+        readonly force?: boolean;
+        readonly changed?: boolean;
+        readonly json?: boolean;
+      }) => {
+        const context = graphContext(program, options.json);
+        programOptions.onResult?.(
+          await runCommand({
+            command: "graph build",
+            context,
+            handler: () => graphBuildCommand(context, options)
+          })
+        );
+      }
+    );
+  graph
+    .command("status")
+    .option("--json", "emit machine-readable JSON output")
+    .action(async (options: { readonly json?: boolean }) => {
+      const context = graphContext(program, options.json);
+      programOptions.onResult?.(
+        await runCommand({
+          command: "graph status",
+          context,
+          handler: () => graphStatusCommand(context)
+        })
+      );
+    });
+  for (const [name, handler] of [
+    ["related", graphRelatedCommand],
+    ["explain", graphExplainCommand]
+  ] as const) {
+    graph
+      .command(name)
+      .argument("<target>", "graph target")
+      .option("--json", "emit machine-readable JSON output")
+      .action(async (target: string, options: { readonly json?: boolean }) => {
+        const context = graphContext(program, options.json);
+        programOptions.onResult?.(
+          await runCommand({
+            command: `graph ${name}`,
+            context,
+            handler: () => handler(context, target)
+          })
+        );
+      });
+  }
+
   program
     .command("scan")
     .description("Scan repository facts for debugging and future init workflows")
@@ -659,6 +721,23 @@ function parsePositiveInteger(value: string): number {
   }
 
   return parsed;
+}
+
+function graphContext(program: Command, json?: boolean) {
+  const globals = program.opts<{
+    readonly json?: boolean;
+    readonly quiet?: boolean;
+    readonly verbose?: boolean;
+    readonly cwd?: string;
+    readonly config?: string;
+    readonly color?: boolean;
+  }>();
+  return createCommandContext({
+    flags: {
+      ...globals,
+      json: Boolean(json ?? globals.json)
+    }
+  });
 }
 
 function collectOptionValue(value: string, previous: readonly string[] = []): readonly string[] {

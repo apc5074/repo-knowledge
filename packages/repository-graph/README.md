@@ -131,5 +131,8 @@ The package exports the typed graph model and stores, plus:
 - `buildWorkerFlow` and `buildDatabaseAccess`, which model scanner-detected worker queues and commands, database dependencies, migration/seed paths, and direct Prisma, SQLAlchemy, or simple SQL reads and writes.
 - `buildTestRelations` and `buildGeneratedPathGraph`, which distinguish import-backed test links from filename-only links and model only scanner- or contract-supported generated/unsafe paths.
 - `buildReferenceIndex` and `ingestDoctorRecords`, which index structured command, CI, verification, and document references alongside read-only snapshots of known problems and legacy candidates.
+- `aggregateUsageEvidence` and `explainLegacyCandidate`, which keep each active-use signal separate and give conservative, auditable candidate explanations that never claim code is safe to delete.
+- `planGraphInvalidation` and typed query helpers for related graph records, tests, docs, commands, unsafe paths, usage, and legacy candidates.
+- `explainGraphTarget` and concise report formatters for graph builds, freshness, related records, and evidence-backed explanations.
 
 Graph construction, structural file nodes, language indexes, queries, and explanations remain later Phase 8 work.
